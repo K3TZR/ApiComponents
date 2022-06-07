@@ -1,6 +1,6 @@
 //
 //  RadioExtension.swift
-//  Components6000/Radio
+//  Api6000Components/Api6000
 //
 //  Created by Douglas Adams on 1/3/20.
 //
@@ -276,7 +276,7 @@ extension Radio {
   }
   
   public func requestAntennaList(callback: ReplyHandler? = nil) {
-    send("ant list", replyTo: callback == nil ? defaultReplyHandler : callback)
+    send("ant list", replyTo: callback)
   }
   
   public func requestCwKeyImmediate(state: Bool, callback: ReplyHandler? = nil) {
@@ -284,7 +284,7 @@ extension Radio {
   }
   
   public func requestInfo(callback: ReplyHandler? = nil) {
-    send("info", replyTo: callback == nil ? defaultReplyHandler : callback)
+    send("info", replyTo: callback )
   }
   
   public func requestLicense(callback: ReplyHandler? = nil) {
@@ -296,7 +296,7 @@ extension Radio {
   }
   
   public func requestMicList(callback: ReplyHandler? = nil) {
-    send("mic list", replyTo: callback == nil ? defaultReplyHandler : callback)
+    send("mic list", replyTo: callback)
   }
   
   public func requestPersistenceOff(callback: ReplyHandler? = nil) {
@@ -324,11 +324,11 @@ extension Radio {
   }
   
   public func requestUptime(callback: ReplyHandler? = nil) {
-    send("radio uptime", replyTo: callback == nil ? defaultReplyHandler : callback)
+    send("radio uptime", replyTo: callback)
   }
   
   public func requestVersion(callback: ReplyHandler? = nil) {
-    send("version", replyTo: callback == nil ? defaultReplyHandler : callback)
+    send("version", replyTo: callback )
   }
   
   public func staticNetParamsReset(callback: ReplyHandler? = nil) {

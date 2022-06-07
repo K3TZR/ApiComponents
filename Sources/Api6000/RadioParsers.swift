@@ -1,6 +1,6 @@
 //
 //  RadioParsers.swift
-//  Components6000/Radio
+//  Api6000Components/Api6000
 //
 //  Created by Douglas Adams on 1/21/22.
 //
@@ -15,7 +15,6 @@ extension Radio {
   /// Parse  Command messages from the Radio
   /// - Parameter msg:        the Message String
   func receivedMessage(_ msg: TcpMessage) {
-//  func receivedMessage(_ msg: TcpMessage) async {
     // get all except the first character
     let suffix = String(msg.text.dropFirst())
     
@@ -25,7 +24,6 @@ extension Radio {
     case "H", "h":  connectionHandle = suffix.handle ; log("Radio: connectionHandle = \(connectionHandle?.hex ?? "nil")", .debug, #function, #file, #line)
     case "M", "m":  parseMessage( msg.text.dropFirst() )
     case "R", "r":  parseReply( msg.text.dropFirst() )
-//    case "S", "s":  await parseStatus( msg.text.dropFirst() )
     case "S", "s":  parseStatus( msg.text.dropFirst() )
     case "V", "v":  hardwareVersion = suffix ; log("Radio: hardwareVersion = \(hardwareVersion ?? "unknown")", .debug, #function, #file, #line)
     default:        log("Radio: unexpected message = \(msg)", .warning, #function, #file, #line)
@@ -48,47 +46,10 @@ extension Radio {
     
     // log it
     log("Radio: message = \(msgText)", flexErrorLevel(errorCode: components[0]), #function, #file, #line)
-//    log("Radio: message = \(msgText)", .debug, #function, #file, #line)
 
     // FIXME: Take action on some/all errors?
   }
-  
-  /// Parse a Reply
-  /// - Parameters:
-  ///   - commandSuffix:      a Reply Suffix
-  func parseReply(_ replySuffix: Substring) {
-    // separate it into its components
-    let components = replySuffix.components(separatedBy: "|")
     
-    // ignore incorrectly formatted replies
-    if components.count < 2 {
-      log("Radio: incomplete reply, r\(replySuffix)", .warning, #function, #file, #line)
-      return
-    }
-    // is there an Object expecting to be notified?
-    if let replyTuple = replyHandlers[ components[0].uValue ] {
-      // YES, an Object is waiting for this reply, send the Command to the Handler on that Object
-      let command = replyTuple.command
-      // was a Handler specified?
-      if let handler = replyTuple.replyTo {
-        // YES, call the Handler
-        handler(command, components[0].sequenceNumber, components[1], (components.count == 3) ? components[2] : "")
-        
-      } else {
-        // send it to the default reply handler
-        defaultReplyHandler(replyTuple.command, sequenceNumber: components[0].sequenceNumber, responseValue: components[1], reply: (components.count == 3) ? components[2] : "")
-      }
-      // Remove the object from the notification list
-      replyHandlers[components[0].sequenceNumber] = nil
-      
-    } else {
-      // no Object is waiting for this reply, log it if it is a non-zero Reply (i.e a possible error)
-      if components[1] != Shared.kNoError {
-        log("Radio: unhandled non-zero reply, c\(components[0]), r\(replySuffix), \(flexErrorString(errorCode: components[1]))", .warning, #function, #file, #line)
-      }
-    }
-  }
-  
   /// Parse a Status
   /// - Parameters:
   ///   - commandSuffix:      a Command Suffix

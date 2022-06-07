@@ -1,6 +1,6 @@
 //
 //  xLib6001.Slice.swift
-//  Components6000/Radio/Objects
+//  Api6000Components/Api6000/Objects
 //
 //  Created by Douglas Adams on 6/2/15.
 //  Copyright (c) 2015 Douglas Adams, K3TZR

@@ -1,6 +1,6 @@
 //
 //  Radio.swift
-//  Api6000/Radio
+//  Api6000Components/Api6000
 //
 //  Created by Douglas Adams on 1/12/22.
 //
@@ -250,11 +250,8 @@ public final class Radio: Equatable {
       .receive(on: _parseQ)
       .sink { [weak self] msg in
         self?.receivedMessage(msg)
-//        Task {
-//          await self.receivedMessage(msg)
-//        }
       }
-    
+     
     _cancellableCommandStatus = command.statusPublisher
       .sink { [weak self] status in
         self?.tcpStatus(status)
@@ -486,7 +483,7 @@ public final class Radio: Equatable {
       
       if packet.source == .smartlink {
         log("Radio: Validate Wan handle = \(packet.wanHandle)", .debug, #function, #file, #line)
-        send("wan validate handle=" + packet.wanHandle, replyTo: wanValidateReplyHandler)
+        send("wan validate handle=" + packet.wanHandle)
         
       } else {
         // bind a UDP port for the Streams

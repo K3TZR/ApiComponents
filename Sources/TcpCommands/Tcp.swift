@@ -1,6 +1,6 @@
 //
 //  TcpCommand.swift
-//  Components6000/TcpCommands
+//  Api6000Components/TcpCommands
 //
 //  Created by Douglas Adams on 12/24/21.
 //

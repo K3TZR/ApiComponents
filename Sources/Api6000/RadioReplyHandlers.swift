@@ -1,6 +1,6 @@
 //
 //  RadioReplyHandlers.swift
-//  Components6000/Radio
+//  Api6000Components/Api6000
 //
 //  Created by Douglas Adams on 1/21/22.
 //
@@ -21,48 +21,55 @@ extension Radio {
       // add the handler
       replyHandlers[seqNumber] = replyTuple
   }
-
-  /// Process the Reply to a command, reply format: <value>,<value>,...<value>
+  
+  /// Parse a Reply
   /// - Parameters:
-  ///   - command:        the original command
-  ///   - seqNum:         the Sequence Number of the original command
-  ///   - responseValue:  the response value
-  ///   - reply:          the reply
-  func defaultReplyHandler(_ command: String, sequenceNumber: SequenceNumber, responseValue: String, reply: String) {
-    guard responseValue == kNoError else {
-
-      // ignore non-zero reply from "client program" command
-      if !command.hasPrefix("client program ") {
-        // Anything other than 0 is an error, log it and ignore the Reply
-//        let errorLevel = flexErrorLevel(errorCode: responseValue)
-//        log("Radio, reply to c\(sequenceNumber), \(command): non-zero reply \(responseValue), \(flexErrorString(errorCode: responseValue))", errorLevel, #function, #file, #line)
-        log("Radio, reply to c\(sequenceNumber), \(command): non-zero reply \(responseValue), \(flexErrorString(errorCode: responseValue))", .error, #function, #file, #line)
-      }
+  ///   - commandSuffix:      a Reply Suffix
+  func parseReply(_ replySuffix: Substring) {
+    // separate it into its components
+    let components = replySuffix.components(separatedBy: "|")
+    
+    // ignore incorrectly formatted replies
+    if components.count < 2 {
+      log("Radio: incomplete reply, r\(replySuffix)", .warning, #function, #file, #line)
       return
     }
+    // find the command using the sequence number
+    if let replyTuple = replyHandlers[ components[0].uValue ] {
+      // found
+      let command = replyTuple.command
+      let reply = components[1]
+      let otherData = components.count < 3 ? "" : components[2]
+      // Remove the object from the notification list
+      replyHandlers[components[0].sequenceNumber] = nil
+      
+      // Anything other than kNoError is an error, log it and ignore the Reply
+      guard reply == kNoError else {
+        // ignore non-zero reply from "client program" command
+        if !command.hasPrefix("client program ") {
+          log("Radio, reply to c\(components[0].sequenceNumber), \(command): non-zero reply \(reply), \(flexErrorString(errorCode: otherData))", .error, #function, #file, #line)
+        }
+        return
+      }
+      
+      // which command?
+      switch command {
+        
+      case "client gui":    parseGuiReply( otherData.keyValuesArray() )
+      case "slice list":    sliceList = otherData.valuesArray().compactMap {$0.objectId}
+      case "ant list":      antennaList = otherData.valuesArray( delimiter: "," )
+      case "info":          parseInfoReply( (otherData.replacingOccurrences(of: "\"", with: "")).keyValuesArray(delimiter: ",") )
+      case "mic list":      micList = otherData.valuesArray(  delimiter: "," )
+      case "radio uptime":  uptime = Int(otherData) ?? 0
+      case "version":       parseVersionReply( otherData.keyValuesArray(delimiter: "#") )
+      default:              if command.hasPrefix("wan validate") { updateState(to: .wanHandleValidated(success: reply == Shared.kNoError)) }
+      }
 
-    // which command?
-    switch command {
-
-    case "client gui":    parseGuiReply( reply.keyValuesArray() )
-    case "slice list":    sliceList = reply.valuesArray().compactMap {$0.objectId}
-    case "ant list":      antennaList = reply.valuesArray( delimiter: "," )
-    case "info":          parseInfoReply( (reply.replacingOccurrences(of: "\"", with: "")).keyValuesArray(delimiter: ",") )
-    case "mic list":      micList = reply.valuesArray(  delimiter: "," )
-    case "radio uptime":  uptime = Int(reply) ?? 0
-    case "version":       parseVersionReply( reply.keyValuesArray(delimiter: "#") )
-    default:              break
+      // was a Handler specified?
+      if let handler = replyTuple.replyTo {
+        // YES, call the Handler
+        handler(command, components[0].sequenceNumber, reply, otherData)
+      }
     }
-  }
-  
-  /// Reply handler for the "wan validate" command
-  /// - Parameters:
-  ///   - command:                a Command string
-  ///   - seqNum:                 the Command's sequence number
-  ///   - responseValue:          the response contained in the Reply to the Command
-  ///   - reply:                  the descriptive text contained in the Reply to the Command
-  func wanValidateReplyHandler(_ command: String, seqNum: UInt, responseValue: String, reply: String) {
-    // return status
-    updateState(to: .wanHandleValidated(success: responseValue == Shared.kNoError))
   }
 }
