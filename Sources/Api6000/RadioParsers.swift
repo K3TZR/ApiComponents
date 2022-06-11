@@ -80,8 +80,14 @@ extension Radio {
     // Known Message Types, in alphabetical order
     switch token {
       
-    case .amplifier:      Amplifier.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
-    case .atu:            Atu.parseProperties(remainder.keyValuesArray() )
+    case .amplifier:
+      Task {
+        await Amplifiers.shared.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
+      }
+    case .atu:
+      Task {
+        await _atu.parseProperties(remainder.keyValuesArray() )
+      }
     case .client:         parseClient(remainder.keyValuesArray(), !remainder.contains(Shared.kDisconnected))
     case .cwx:
       break
@@ -89,7 +95,10 @@ extension Radio {
     case .display:        parseDisplay(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
     case .eq:             Equalizer.parseStatus(remainder.keyValuesArray())
     case .file:           log("Radio, unprocessed \(msgType) message: \(remainder)", .warning, #function, #file, #line)
-    case .gps:            Model.shared.gps.parseProperties(remainder.keyValuesArray(delimiter: "#") )
+    case .gps:
+      Task {
+        await _gps.parseProperties(remainder.keyValuesArray(delimiter: "#") )
+      }
     case .interlock:      parseInterlock(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
     case .memory:         Memory.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
     case .meter:          Meter.parseStatus(remainder.keyValuesArray(delimiter: "#"), !remainder.contains(Shared.kRemoved))
@@ -98,11 +107,17 @@ extension Radio {
     case .radio:          parseProperties(remainder.keyValuesArray())
     case .slice:          Slice.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kNotInUse))
     case .stream:         parseStream(remainder)
-    case .tnf:            Tnf.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
+    case .tnf:
+      Task {
+        await Tnfs.shared.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
+      }
     case .transmit:       parseTransmit(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
     case .turf:           log("Radio, unprocessed \(msgType) message: \(remainder)", .warning, #function, #file, #line)
     case .usbCable:       UsbCable.parseStatus(remainder.keyValuesArray())
-    case .wan:            Wan.parseProperties(remainder.keyValuesArray())
+    case .wan:
+      Task {
+        await _wan.parseProperties(remainder.keyValuesArray())
+      }
     case .waveform:       Waveform.parseProperties(remainder.keyValuesArray(delimiter: "="))
     case .xvtr:           Xvtr.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kNotInUse))
     }
@@ -137,8 +152,14 @@ extension Radio {
   private func parseDisplay(_ properties: KeyValuesArray, _ inUse: Bool = true) {
     switch properties[0].key {
       
-    case DisplayToken.panadapter.rawValue:   Panadapter.parseStatus(properties, inUse)
-    case DisplayToken.waterfall.rawValue:    Waterfall.parseStatus(properties, inUse)
+    case DisplayToken.panadapter.rawValue:
+      Task {
+        await Panadapters.shared.parseStatus(properties, inUse)
+      }
+    case DisplayToken.waterfall.rawValue:
+      Task {
+        await Waterfalls.shared.parseStatus(properties, inUse)
+      }
     default:  log("Radio, unknown display type: \(properties[0].key)", .warning, #function, #file, #line)
     }
   }
@@ -251,7 +272,9 @@ extension Radio {
 
     } else {
       // NO, pass it to Interlock
-      Interlock.parseProperties(properties)
+      Task {
+        await _interlock.parseProperties(properties)
+      }
       interlockStateChange(Model.shared.interlock.state)
     }
   }
@@ -308,7 +331,9 @@ extension Radio {
       
     } else {
       // NO, pass it to Transmit
-      Transmit.parseProperties(properties)
+      Task {
+        await _transmit.parseProperties(properties)
+      }
     }
   }
   

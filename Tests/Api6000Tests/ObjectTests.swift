@@ -675,15 +675,17 @@ final class ObjectTests: XCTestCase {
     // ------------------------------------------------------------------------------
     // MARK: - Panadapter
     
-  func testPanadapterParse() {
+  func testPanadapterParse() async {
     let status = "pan 0x40000001 wnb=0 wnb_level=92 wnb_updating=0 band_zoom=0 segment_zoom=0 x_pixels=50 y_pixels=100 center=14.100000 bandwidth=0.200000 min_dbm=-125.00 max_dbm=-40.00 fps=25 average=23 weighted_average=0 rfgain=50 rxant=ANT1 wide=0 loopa=0 loopb=1 band=20 daxiq=0 daxiq_rate=0 capacity=16 available=16 waterfall=42000000 min_bw=0.004920 max_bw=14.745601 xvtr= pre= ant_list=ANT1,ANT2,RX_A,XVTR"
     
     let id = status.components(separatedBy: " ")[1].streamId!
     
-    Panadapter.parseStatus(status.keyValuesArray(), true)
+    await Panadapters.shared.parseStatus(status.keyValuesArray(), true)
     
-    if let panadapter = Model.shared.panadapters[id: id] {
+    if await Panadapters.shared.exists(id: id) {
       
+      if let panadapter = Model.shared.panadapters[id: id] {
+        
       XCTAssertEqual(panadapter.wnbLevel, 92, file: #function)
       XCTAssertEqual(panadapter.wnbUpdating, false, file: #function)
       XCTAssertEqual(panadapter.bandZoomEnabled, false, file: #function)
@@ -708,69 +710,17 @@ final class ObjectTests: XCTestCase {
       XCTAssertEqual(panadapter.minBw, 4_920, file: #function)
       XCTAssertEqual(panadapter.maxBw, 14_745_601, file: #function)
       XCTAssertEqual(panadapter.antList, ["ANT1","ANT2","RX_A","XVTR"], file: #function)
-      
-      Model.shared.panadapters[id: id]?.wnbLevel = 50
-      Model.shared.panadapters[id: id]?.bandZoomEnabled = true
-      Model.shared.panadapters[id: id]?.segmentZoomEnabled = true
-      Model.shared.panadapters[id: id]?.xPixels = 250
-      Model.shared.panadapters[id: id]?.yPixels = 125
-      Model.shared.panadapters[id: id]?.center = 15_250_000
-      Model.shared.panadapters[id: id]?.bandwidth = 300_000
-      Model.shared.panadapters[id: id]?.minDbm = -150
-      Model.shared.panadapters[id: id]?.maxDbm = 20
-      Model.shared.panadapters[id: id]?.fps = 10
-      Model.shared.panadapters[id: id]?.average = 30
-      Model.shared.panadapters[id: id]?.weightedAverageEnabled = true
-      Model.shared.panadapters[id: id]?.rfGain = 10
-      Model.shared.panadapters[id: id]?.rxAnt = "ANT2"
-      Model.shared.panadapters[id: id]?.loopAEnabled = true
-      Model.shared.panadapters[id: id]?.loopBEnabled = false
-      Model.shared.panadapters[id: id]?.band = "WWV2"
-      Model.shared.panadapters[id: id]?.daxIqChannel = 1
-      Model.shared.panadapters[id: id]?.waterfallId = "0x42000001".streamId!
-      Model.shared.panadapters[id: id]?.minBw = 10_000
-      Model.shared.panadapters[id: id]?.maxBw = 10_000_000
-      Model.shared.panadapters[id: id]?.antList = ["ANT2","RX_A","XVTR"]
-      
-      if let updatedPanadapter = Model.shared.panadapters[id: id] {
-        XCTAssertEqual(updatedPanadapter.wnbLevel, 50, file: #function)
-        XCTAssertEqual(updatedPanadapter.wnbUpdating, false, file: #function)
-        XCTAssertEqual(updatedPanadapter.bandZoomEnabled, true, file: #function)
-        XCTAssertEqual(updatedPanadapter.segmentZoomEnabled, true, file: #function)
-        XCTAssertEqual(updatedPanadapter.xPixels, 250, file: #function)
-        XCTAssertEqual(updatedPanadapter.yPixels, 125, file: #function)
-        XCTAssertEqual(updatedPanadapter.center, 15_250_000, file: #function)
-        XCTAssertEqual(updatedPanadapter.bandwidth, 300_000, file: #function)
-        XCTAssertEqual(updatedPanadapter.minDbm, -150, file: #function)
-        XCTAssertEqual(updatedPanadapter.maxDbm, 20, file: #function)
-        XCTAssertEqual(updatedPanadapter.fps, 10, file: #function)
-        XCTAssertEqual(updatedPanadapter.average, 30, file: #function)
-        XCTAssertEqual(updatedPanadapter.weightedAverageEnabled, true, file: #function)
-        XCTAssertEqual(updatedPanadapter.rfGain, 10, file: #function)
-        XCTAssertEqual(updatedPanadapter.rxAnt, "ANT2", file: #function)
-        XCTAssertEqual(updatedPanadapter.wide, false, file: #function)
-        XCTAssertEqual(updatedPanadapter.loopAEnabled, true, file: #function)
-        XCTAssertEqual(updatedPanadapter.loopBEnabled, false, file: #function)
-        XCTAssertEqual(updatedPanadapter.band, "WWV2", file: #function)
-        XCTAssertEqual(updatedPanadapter.daxIqChannel, 1, file: #function)
-        XCTAssertEqual(updatedPanadapter.waterfallId, "0x42000001".streamId!, file: #function)
-        XCTAssertEqual(updatedPanadapter.minBw, 10_000, file: #function)
-        XCTAssertEqual(updatedPanadapter.maxBw, 10_000_000, file: #function)
-        XCTAssertEqual(updatedPanadapter.antList, ["ANT2","RX_A","XVTR"], file: #function)
-         
-        Panadapter.remove(id)
-        
-        if Model.shared.panadapters[id: id] != nil {
-          XCTFail("----->>>>> Panadapter removal FAILED <<<<<-----", file: #function)
-        }
-      } else {
-        XCTFail("----->>>>> Unable to access updated Panadapter <<<<<-----", file: #function)
+      }
+      await Panadapters.shared.remove(id)
+
+      if await Panadapters.shared.exists(id: id) {
+        XCTFail("----->>>>> Panadapter removal FAILED <<<<<-----", file: #function)
       }
     } else {
       XCTFail("----->>>>> Panadapter NOT added <<<<<-----", file: #function)
     }
   }
-  
+
   // ------------------------------------------------------------------------------
   // MARK: - Profile
   
@@ -886,34 +836,20 @@ final class ObjectTests: XCTestCase {
     
     let id = status.keyValuesArray()[0].key.objectId!
     
-    Tnf.parseStatus(status.keyValuesArray(), true)
+    await Tnfs.shared.parseStatus(status.keyValuesArray(), true)
     
-    if let tnf = Model.shared.tnfs[id: id] {
-      
-      XCTAssertEqual(tnf.depth, 2, "Depth", file: #function)
-      XCTAssertEqual(tnf.frequency, 14_160_000, "Frequency", file: #function)
-      XCTAssertEqual(tnf.permanent, true, "Permanent", file: #function)
-      XCTAssertEqual(tnf.width, 100, "Width", file: #function)
-      
-      Model.shared.tnfs[id: id]?.depth = Tnf.Depth.veryDeep.rawValue
-      Model.shared.tnfs[id: id]?.frequency = 14_250_000
-      Model.shared.tnfs[id: id]?.permanent = false
-      Model.shared.tnfs[id: id]?.width = 6_000
-      
-      if let updatedTnf = Model.shared.tnfs[id: id] {
-        XCTAssertEqual(updatedTnf.depth, Tnf.Depth.veryDeep.rawValue, "Depth", file: #function)
-        XCTAssertEqual(updatedTnf.frequency, 14_250_000, "Frequency", file: #function)
-        XCTAssertEqual(updatedTnf.permanent, false, "Permanent", file: #function)
-        XCTAssertEqual(updatedTnf.width, 6_000, "Width", file: #function)
-        
-        Tnf.remove(id)
-        
-        if Model.shared.tnfs[id: id] != nil {
-          XCTFail("----->>>>> Tnf removal FAILED <<<<<-----", file: #function)
-        }
-      } else {
-        XCTFail("----->>>>> Unable to access updated Tnf <<<<<-----", file: #function)
+    if await Tnfs.shared.exists(id: id) {
+      if let tnf = Model.shared.tnfs[id: id] {
+        XCTAssertEqual(tnf.depth, 2, "Depth", file: #function)
+        XCTAssertEqual(tnf.frequency, 14_160_000, "Frequency", file: #function)
+        XCTAssertEqual(tnf.permanent, true, "Permanent", file: #function)
+        XCTAssertEqual(tnf.width, 100, "Width", file: #function)
       }
+      await Tnfs.shared.remove(id)
+
+      if await Tnfs.shared.exists(id: id) {
+        XCTFail("----->>>>> Tnf removal FAILED <<<<<-----", file: #function)
+      }    
     } else {
       XCTFail("----->>>>> Tnf NOT added <<<<<-----", file: #function)
     }
@@ -1150,43 +1086,27 @@ final class ObjectTests: XCTestCase {
   // ------------------------------------------------------------------------------
   // MARK: - Waterfall
     
-  func testWaterfallParse() {
+  func testWaterfallParse() async {
     let status = "waterfall 0x42000004 x_pixels=50 center=14.100000 bandwidth=0.200000 band_zoom=0 segment_zoom=0 line_duration=100 rfgain=0 rxant=ANT1 wide=0 loopa=0 loopb=0 band=20 daxiq=0 daxiq_rate=0 capacity=16 available=16 panadapter=40000000 color_gain=50 auto_black=1 black_level=20 gradient_index=1 xvtr="
     
     let id = status.keyValuesArray()[1].key.streamId!
     
-    Waterfall.parseStatus(status.keyValuesArray(), true)
+    await Waterfalls.shared.parseStatus(status.keyValuesArray(), true)
     
-    if let waterfall = Model.shared.waterfalls[id: id] {
-      
-      XCTAssertEqual(waterfall.autoBlackEnabled, true, "AutoBlackEnabled", file: #function)
-      XCTAssertEqual(waterfall.blackLevel, 20, "BlackLevel", file: #function)
-      XCTAssertEqual(waterfall.colorGain, 50, "ColorGain", file: #function)
-      XCTAssertEqual(waterfall.gradientIndex, 1, "GradientIndex", file: #function)
-      XCTAssertEqual(waterfall.lineDuration, 100, "LineDuration", file: #function)
-      XCTAssertEqual(waterfall.panadapterId, "0x40000000".streamId, "Panadapter Id", file: #function)
-      
-      Model.shared.waterfalls[id: id]?.autoBlackEnabled = false
-      Model.shared.waterfalls[id: id]?.blackLevel = 30
-      Model.shared.waterfalls[id: id]?.colorGain = 70
-      Model.shared.waterfalls[id: id]?.gradientIndex = 2
-      Model.shared.waterfalls[id: id]?.lineDuration = 80
-      
-      
-      if let updatedWaterfall = Model.shared.waterfalls[id: id] {
-        XCTAssertEqual(updatedWaterfall.autoBlackEnabled, false, "AutoBlackEnabled", file: #function)
-        XCTAssertEqual(updatedWaterfall.blackLevel, 30, "BlackLevel", file: #function)
-        XCTAssertEqual(updatedWaterfall.colorGain, 70, "ColorGain", file: #function)
-        XCTAssertEqual(updatedWaterfall.gradientIndex, 2, "GradientIndex", file: #function)
-        XCTAssertEqual(updatedWaterfall.lineDuration, 80, "LineDuration", file: #function)
+    if await Waterfalls.shared.exists(id: id) {
+      if let waterfall = Model.shared.waterfalls[id: id] {
         
-        Waterfall.remove(id)
-        
-        if Model.shared.waterfalls[id: id] != nil {
-          XCTFail("----->>>>> Waterfall NOT removed <<<<<-----", file: #function)
-        }
-      } else {
-        XCTFail("----->>>>> Unable to access updated Waterfall <<<<<-----", file: #function)
+        XCTAssertEqual(waterfall.autoBlackEnabled, true, "AutoBlackEnabled", file: #function)
+        XCTAssertEqual(waterfall.blackLevel, 20, "BlackLevel", file: #function)
+        XCTAssertEqual(waterfall.colorGain, 50, "ColorGain", file: #function)
+        XCTAssertEqual(waterfall.gradientIndex, 1, "GradientIndex", file: #function)
+        XCTAssertEqual(waterfall.lineDuration, 100, "LineDuration", file: #function)
+        XCTAssertEqual(waterfall.panadapterId, "0x40000000".streamId, "Panadapter Id", file: #function)
+      }
+      await Waterfalls.shared.remove(id)
+      
+      if await Waterfalls.shared.exists(id: id) {
+        XCTFail("----->>>>> Waterfall NOT removed <<<<<-----", file: #function)
       }
     } else {
       XCTFail("----->>>>> Waterfall NOT added <<<<<-----", file: #function)

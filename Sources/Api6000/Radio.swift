@@ -210,6 +210,12 @@ public final class Radio: Equatable {
   var _tcp: Tcp
   var _testerModeEnabled: Bool
   var _udp: Udp
+  
+  var _atu = Atu()
+  var _gps = Gps()
+  var _interlock = Interlock()
+  var _transmit = Transmit()
+  var _wan = Wan()
 
   // ----------------------------------------------------------------------------
   // MARK: - Initialization
@@ -622,12 +628,14 @@ public final class Radio: Equatable {
     DaxTxAudioStream.removeAll()
     RemoteRxAudioStream.removeAll()
     RemoteTxAudioStream.removeAll()
-    Amplifier.removeAll()
     BandSetting.removeAll()
-    Tnf.removeAll()
+    Task {
+      await Amplifiers.shared.removeAll()
+      await Tnfs.shared.removeAll()
+      await Waterfalls.shared.removeAll()
+      await Panadapters.shared.removeAll()
+    }
     Slice.removeAll()
-    Panadapter.removeAll()
-    Waterfall.removeAll()
     Profile.removeAll()
     Equalizer.removeAll()
     Memory.removeAll()
