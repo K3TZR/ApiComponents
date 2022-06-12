@@ -157,7 +157,7 @@ public actor Waterfalls {
   // ----------------------------------------------------------------------------
   // MARK: - Public Static methods
   
-  public static func setProperty(radio: Radio, _ id: WaterfallId, property: WaterfallToken, value: Any) {
+  public static nonisolated func setProperty(radio: Radio, _ id: WaterfallId, property: WaterfallToken, value: Any) {
     switch property {
     case .autoBlackEnabled:   sendCommand( radio, id, .autoBlackEnabled, (value as! Bool).as1or0)
     case .blackLevel:         sendCommand( radio, id, .blackLevel, value)
@@ -181,201 +181,198 @@ public actor Waterfalls {
     radio.send("display panafall set " + "\(id.hex) " + token.rawValue + "=\(value)")
   }
 }
+
+// ----------------------------------------------------------------------------
+// MARK: - Waterfall Struct
+
+public struct Waterfall: Identifiable {
+  // ----------------------------------------------------------------------------
+  // MARK: - Public properties
   
-  // Waterfall struct implementation
-  //       creates a Waterfall instance to be used by a Client to support the
-  //       processing of a Waterfall. Waterfall structs are added / removed by the
-  //       incoming TCP messages. Waterfall objects periodically receive Waterfall
-  //       data in a UDP stream. They are collected in the WaterfallsCollection.
+  public let id: WaterfallId
+
+  public var isStreaming = false
+  public var initialized: Bool = false
+  public var autoBlackEnabled = false
+  public var autoBlackLevel: UInt32 = 0
+  public var blackLevel = 0
+  public var clientHandle: Handle = 0
+  public var colorGain = 0
+  public var delegate: StreamHandler?
+  public var gradientIndex = 0
+  public var lineDuration = 0
+  public var panadapterId: PanadapterId?
   
-  public struct Waterfall: Identifiable {
-    // ----------------------------------------------------------------------------
-    // MARK: - Public properties
+  // ----------------------------------------------------------------------------
+  // MARK: - Public properties
+  static var q = DispatchQueue(label: "WaterfallSequenceQ", attributes: [.concurrent])
+  private var _expectedFrameNumber = -1
+  private var _droppedPackets = 0
+  private var _accumulatedBins = 0
+  
+  private struct PayloadHeader {  // struct to mimic payload layout
+    var firstBinFreq: UInt64    // 8 bytes
+    var binBandwidth: UInt64    // 8 bytes
+    var lineDuration : UInt32   // 4 bytes
+    var segmentBinCount: UInt16    // 2 bytes
+    var height: UInt16          // 2 bytes
+    var frameNumber: UInt32   // 4 bytes
+    var autoBlackLevel: UInt32  // 4 bytes
+    var frameBinCount: UInt16       // 2 bytes
+    var startingBinNumber: UInt16        // 2 bytes
+  }
+  
+  // ----------------------------------------------------------------------------
+  // MARK: - Private properties
+  
+  private var _frames = [WaterfallFrame]()
+  @Atomic(0, q) private var index: Int
+  
+  private let _numberOfFrames = 10
+  
+  // ----------------------------------------------------------------------------
+  // MARK: - Initialization
+  
+  public init(_ id: WaterfallId) {
+    self.id = id
     
-    public internal(set) var id: WaterfallId
-    public internal(set) var isStreaming = false
-    public internal(set) var initialized: Bool = false
-    
-    public internal(set) var autoBlackEnabled = false
-    public internal(set) var autoBlackLevel: UInt32 = 0
-    public internal(set) var blackLevel = 0
-    public internal(set) var clientHandle: Handle = 0
-    public internal(set) var colorGain = 0
-    public internal(set) var delegate: StreamHandler?
-    public internal(set) var gradientIndex = 0
-    public internal(set) var lineDuration = 0
-    public internal(set) var panadapterId: PanadapterId?
-    
-    // ----------------------------------------------------------------------------
-    // MARK: - Public properties
-    static var q = DispatchQueue(label: "WaterfallSequenceQ", attributes: [.concurrent])
-    private var _expectedFrameNumber = -1
-    private var _droppedPackets = 0
-    private var _accumulatedBins = 0
-    
-    private struct PayloadHeader {  // struct to mimic payload layout
-      var firstBinFreq: UInt64    // 8 bytes
-      var binBandwidth: UInt64    // 8 bytes
-      var lineDuration : UInt32   // 4 bytes
-      var segmentBinCount: UInt16    // 2 bytes
-      var height: UInt16          // 2 bytes
-      var frameNumber: UInt32   // 4 bytes
-      var autoBlackLevel: UInt32  // 4 bytes
-      var frameBinCount: UInt16       // 2 bytes
-      var startingBinNumber: UInt16        // 2 bytes
+    // allocate two dataframes
+    for _ in 0..<_numberOfFrames {
+      _frames.append(WaterfallFrame(frameSize: 4096))
+    }
+  }
+  
+  /// Process the Waterfall Vita struct
+  ///
+  ///   VitaProcessor protocol method, executes on the streamQ
+  ///      The payload of the incoming Vita struct is converted to a WaterfallFrame and
+  ///      passed to the Waterfall Stream Handler, called by Radio
+  ///
+  /// - Parameters:
+  ///   - vita:       a Vita struct
+  public mutating func vitaProcessor(_ vita: Vita, _ testMode: Bool = false) {
+    if isStreaming == false {
+      isStreaming = true
+      // log the start of the stream
+      log("Waterfall stream \(vita.streamId.hex): started", .info, #function, #file, #line)
     }
     
-    // ----------------------------------------------------------------------------
-    // MARK: - Private properties
+    // Bins are just beyond the payload
+    let byteOffsetToBins = MemoryLayout<PayloadHeader>.size
     
-    private var _frames = [WaterfallFrame]()
-    @Atomic(0, q) private var index: Int
-    
-    private let _numberOfFrames = 10
-    
-    // ----------------------------------------------------------------------------
-    // MARK: - Initialization
-    
-    public init(_ id: WaterfallId) {
-      self.id = id
+    vita.payloadData.withUnsafeBytes { ptr in
       
-      // allocate two dataframes
-      for _ in 0..<_numberOfFrames {
-        _frames.append(WaterfallFrame(frameSize: 4096))
-      }
-    }
-    
-    /// Process the Waterfall Vita struct
-    ///
-    ///   VitaProcessor protocol method, executes on the streamQ
-    ///      The payload of the incoming Vita struct is converted to a WaterfallFrame and
-    ///      passed to the Waterfall Stream Handler, called by Radio
-    ///
-    /// - Parameters:
-    ///   - vita:       a Vita struct
-    mutating func vitaProcessor(_ vita: Vita, _ testMode: Bool = false) {
-      if isStreaming == false {
-        isStreaming = true
-        // log the start of the stream
-        log("Waterfall stream \(vita.streamId.hex): started", .info, #function, #file, #line)
-      }
+      // map the payload to the Payload struct
+      let hdr = ptr.bindMemory(to: PayloadHeader.self)
       
-      // Bins are just beyond the payload
-      let byteOffsetToBins = MemoryLayout<PayloadHeader>.size
+      let startingBinNumber = Int(CFSwapInt16BigToHost(hdr[0].startingBinNumber))
+      let segmentBinCount = Int(CFSwapInt16BigToHost(hdr[0].segmentBinCount))
+      let frameBinCount = Int(CFSwapInt16BigToHost(hdr[0].frameBinCount))
+      let frameNumber = Int(CFSwapInt32BigToHost(hdr[0].frameNumber))
       
-      vita.payloadData.withUnsafeBytes { ptr in
-        
-        // map the payload to the Payload struct
-        let hdr = ptr.bindMemory(to: PayloadHeader.self)
-        
-        let startingBinNumber = Int(CFSwapInt16BigToHost(hdr[0].startingBinNumber))
-        let segmentBinCount = Int(CFSwapInt16BigToHost(hdr[0].segmentBinCount))
-        let frameBinCount = Int(CFSwapInt16BigToHost(hdr[0].frameBinCount))
-        let frameNumber = Int(CFSwapInt32BigToHost(hdr[0].frameNumber))
-        
-        // validate the packet (could be incomplete at startup)
-        if frameBinCount == 0 { return }
-        if startingBinNumber + segmentBinCount > frameBinCount { return }
-        
-        // are we in the ApiTester?
-        if testMode {
-          // YES, are we waiting for the start of a frame?
-          if _expectedFrameNumber == -1 {
-            // YES, is it the start of a frame?
-            if startingBinNumber == 0 {
-              // YES, START OF A FRAME
-              _expectedFrameNumber = frameNumber
-            } else {
-              // NO, NOT THE START OF A FRAME
-              return
-            }
-          }
-          // is it the expected frame?
-          if _expectedFrameNumber == frameNumber {
-            // IT IS THE EXPECTED FRAME, add its bins to the collection
-            _accumulatedBins += segmentBinCount
-            
-            // is the frame complete?
-            if _accumulatedBins == frameBinCount {
-              // YES, expect the next frame
-              _expectedFrameNumber += 1
-              _accumulatedBins = 0
-            }
-            
+      // validate the packet (could be incomplete at startup)
+      if frameBinCount == 0 { return }
+      if startingBinNumber + segmentBinCount > frameBinCount { return }
+      
+      // are we in the ApiTester?
+      if testMode {
+        // YES, are we waiting for the start of a frame?
+        if _expectedFrameNumber == -1 {
+          // YES, is it the start of a frame?
+          if startingBinNumber == 0 {
+            // YES, START OF A FRAME
+            _expectedFrameNumber = frameNumber
           } else {
-            // NOT THE EXPECTED FRAME, wait for the next start of frame
-            log("Waterfall: missing frame(s), expected = \(_expectedFrameNumber), received = \(frameNumber)", .warning, #function, #file, #line)
-            _expectedFrameNumber = -1
-            _accumulatedBins = 0
+            // NO, NOT THE START OF A FRAME
             return
+          }
+        }
+        // is it the expected frame?
+        if _expectedFrameNumber == frameNumber {
+          // IT IS THE EXPECTED FRAME, add its bins to the collection
+          _accumulatedBins += segmentBinCount
+          
+          // is the frame complete?
+          if _accumulatedBins == frameBinCount {
+            // YES, expect the next frame
+            _expectedFrameNumber += 1
+            _accumulatedBins = 0
           }
           
         } else {
-          // NORMAL MODE
-          // populate frame values
-          _frames[index].firstBinFreq = CGFloat(CFSwapInt64BigToHost(hdr[0].firstBinFreq)) / 1.048576E6
-          _frames[index].binBandwidth = CGFloat(CFSwapInt64BigToHost(hdr[0].binBandwidth)) / 1.048576E6
-          _frames[index].lineDuration = Int( CFSwapInt32BigToHost(hdr[0].lineDuration) )
-          _frames[index].height = Int( CFSwapInt16BigToHost(hdr[0].height) )
-          _frames[index].autoBlackLevel = CFSwapInt32BigToHost(hdr[0].autoBlackLevel)
-          
-          if _expectedFrameNumber != frameNumber {
-            _droppedPackets += (frameNumber - _expectedFrameNumber)
-            log("Waterfall: missing frame(s), expected = \(_expectedFrameNumber), received = \(frameNumber), drop count = \(_droppedPackets)", .warning, #function, #file, #line)
-            _expectedFrameNumber = frameNumber
+          // NOT THE EXPECTED FRAME, wait for the next start of frame
+          log("Waterfall: missing frame(s), expected = \(_expectedFrameNumber), received = \(frameNumber)", .warning, #function, #file, #line)
+          _expectedFrameNumber = -1
+          _accumulatedBins = 0
+          return
+        }
+        
+      } else {
+        // NORMAL MODE
+        // populate frame values
+        _frames[index].firstBinFreq = CGFloat(CFSwapInt64BigToHost(hdr[0].firstBinFreq)) / 1.048576E6
+        _frames[index].binBandwidth = CGFloat(CFSwapInt64BigToHost(hdr[0].binBandwidth)) / 1.048576E6
+        _frames[index].lineDuration = Int( CFSwapInt32BigToHost(hdr[0].lineDuration) )
+        _frames[index].height = Int( CFSwapInt16BigToHost(hdr[0].height) )
+        _frames[index].autoBlackLevel = CFSwapInt32BigToHost(hdr[0].autoBlackLevel)
+        
+        if _expectedFrameNumber != frameNumber {
+          _droppedPackets += (frameNumber - _expectedFrameNumber)
+          log("Waterfall: missing frame(s), expected = \(_expectedFrameNumber), received = \(frameNumber), drop count = \(_droppedPackets)", .warning, #function, #file, #line)
+          _expectedFrameNumber = frameNumber
+        }
+        
+        vita.payloadData.withUnsafeBytes { ptr in
+          // Swap the byte ordering of the data & place it in the bins
+          for i in 0..<segmentBinCount {
+            _frames[index].bins[i+startingBinNumber] = CFSwapInt16BigToHost( ptr.load(fromByteOffset: byteOffsetToBins + (2 * i), as: UInt16.self) )
           }
+        }
+        _accumulatedBins += segmentBinCount
+        
+        // is it a complete Frame?
+        if _accumulatedBins == frameBinCount {
+          _frames[index].frameBinCount = _accumulatedBins
+          // YES, pass it to the delegate
+          delegate?.streamHandler(_frames[index])
           
-          vita.payloadData.withUnsafeBytes { ptr in
-            // Swap the byte ordering of the data & place it in the bins
-            for i in 0..<segmentBinCount {
-              _frames[index].bins[i+startingBinNumber] = CFSwapInt16BigToHost( ptr.load(fromByteOffset: byteOffsetToBins + (2 * i), as: UInt16.self) )
-            }
-          }
-          _accumulatedBins += segmentBinCount
-          
-          // is it a complete Frame?
-          if _accumulatedBins == frameBinCount {
-            _frames[index].frameBinCount = _accumulatedBins
-            // YES, pass it to the delegate
-            delegate?.streamHandler(_frames[index])
-            
-            // update the expected frame number & dataframe index
-            _expectedFrameNumber += 1
-            _accumulatedBins = 0
-            $index.mutate { $0 += 1 ; $0 = $0 % _numberOfFrames }
-          }
+          // update the expected frame number & dataframe index
+          _expectedFrameNumber += 1
+          _accumulatedBins = 0
+          $index.mutate { $0 += 1 ; $0 = $0 % _numberOfFrames }
         }
       }
     }
   }
+}
+
+/// Class containing Waterfall Stream data
+///
+///   populated by the Waterfall vitaHandler
+public struct WaterfallFrame {
+  // ----------------------------------------------------------------------------
+  // MARK: - Public properties
   
-  /// Class containing Waterfall Stream data
+  public var firstBinFreq: CGFloat = 0.0  // Frequency of first Bin (Hz)
+  public var binBandwidth: CGFloat = 0.0  // Bandwidth of a single bin (Hz)
+  public var lineDuration  = 0            // Duration of this line (ms)
+  //  public var segmentBinCount = 0          // Number of bins
+  public var height = 0                   // Height of frame (pixels)
+  //  public var frameNumber = 0              // Time code
+  public var autoBlackLevel: UInt32 = 0   // Auto black level
+  public var frameBinCount = 0            //
+  //  public var startingBinNumber = 0        //
+  public var bins = [UInt16]()            // Array of bin values
+  
+  // ----------------------------------------------------------------------------
+  // MARK: - Initialization
+  
+  /// Initialize a WaterfallFrame
   ///
-  ///   populated by the Waterfall vitaHandler
-  public struct WaterfallFrame {
-    // ----------------------------------------------------------------------------
-    // MARK: - Public properties
-    
-    public var firstBinFreq: CGFloat = 0.0  // Frequency of first Bin (Hz)
-    public var binBandwidth: CGFloat = 0.0  // Bandwidth of a single bin (Hz)
-    public var lineDuration  = 0            // Duration of this line (ms)
-    //  public var segmentBinCount = 0          // Number of bins
-    public var height = 0                   // Height of frame (pixels)
-    //  public var frameNumber = 0              // Time code
-    public var autoBlackLevel: UInt32 = 0   // Auto black level
-    public var frameBinCount = 0            //
-    //  public var startingBinNumber = 0        //
-    public var bins = [UInt16]()            // Array of bin values
-    
-    // ----------------------------------------------------------------------------
-    // MARK: - Initialization
-    
-    /// Initialize a WaterfallFrame
-    ///
-    /// - Parameter frameSize:    max number of Waterfall samples
-    ///
-    public init(frameSize: Int) {
-      // allocate the bins array
-      self.bins = [UInt16](repeating: 0, count: frameSize)
-    }
+  /// - Parameter frameSize:    max number of Waterfall samples
+  ///
+  public init(frameSize: Int) {
+    // allocate the bins array
+    self.bins = [UInt16](repeating: 0, count: frameSize)
   }
+}

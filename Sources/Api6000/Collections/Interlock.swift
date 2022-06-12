@@ -152,7 +152,7 @@ public actor Interlock {
   ///   - radio:      the current radio
   ///   - token:      an Interlock Token
   ///   - value:      the new value
-  public static func setProperty(radio: Radio, _ token: InterlockToken, value: Any) {
+  public static nonisolated func setProperty(radio: Radio, _ token: InterlockToken, value: Any) {
     // FIXME: add commands
   }
 

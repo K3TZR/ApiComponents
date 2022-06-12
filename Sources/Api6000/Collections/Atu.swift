@@ -99,16 +99,16 @@ public actor Atu {
   ///   - radio:      the current radio
   ///   - property:   an Atu Token
   ///   - value:      the new value
-  public static func setProperty(radio: Radio, _ token: AtuToken, value: Any) {
+  public static nonisolated func setProperty(radio: Radio, _ token: AtuToken, value: Any) {
     sendCommand( radio, token, value)
   }
-  public static func clear(_ radio: Radio, callback: ReplyHandler? = nil) {
+  public static nonisolated func clear(_ radio: Radio, callback: ReplyHandler? = nil) {
     radio.send("atu clear", replyTo: callback)
   }
-  public static func start(_ radio: Radio, callback: ReplyHandler? = nil) {
+  public static nonisolated func start(_ radio: Radio, callback: ReplyHandler? = nil) {
     radio.send("atu start", replyTo: callback)
   }
-  public static func bypass(_ radio: Radio, callback: ReplyHandler? = nil) {
+  public static nonisolated func bypass(_ radio: Radio, callback: ReplyHandler? = nil) {
     radio.send("atu bypass", replyTo: callback)
   }
   

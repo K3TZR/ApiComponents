@@ -241,7 +241,7 @@ public actor Panadapters {
   ///   - id:         the Id for the specified Waterfall
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ id: PanadapterId, _ token: PanadapterToken, _ value: Any) {
+  private static nonisolated func sendCommand(_ radio: Radio, _ id: PanadapterId, _ token: PanadapterToken, _ value: Any) {
       radio.send("display panafall set " + "\(id.hex) " + token.rawValue + "=\(value)")
   }
 
@@ -258,11 +258,8 @@ public actor Panadapters {
   }
 }
 
-// Panadapter implementation
-//       creates a Panadapter instance to be used by a Client to support the
-//       processing of a Panadapter. Panadapter structs are added / removed by the
-//       incoming TCP messages. Panadapter objects periodically receive Panadapter
-//       data in a UDP stream. They are collected in the PanadaptersCollection.
+// ----------------------------------------------------------------------------
+// MARK: - Panadapter Struct
 
 public struct Panadapter: Identifiable {
   // ----------------------------------------------------------------------------
@@ -273,27 +270,27 @@ public struct Panadapter: Identifiable {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var id: PanadapterId
-  public internal(set) var initialized: Bool = false
-  public internal(set) var isStreaming: Bool = false
-
-  public internal(set) var antList = [String]()
-  public internal(set) var clientHandle: Handle = 0
-  public internal(set) var dbmValues = [LegendValue]()
-  public internal(set) var delegate: StreamHandler?
-  public internal(set) var fillLevel: Int = 0
-  public internal(set) var freqValues = [LegendValue]()
-  public internal(set) var maxBw: Hz = 0
-  public internal(set) var minBw: Hz = 0
-  public internal(set) var preamp = ""
-  public internal(set) var rfGainHigh = 0
-  public internal(set) var rfGainLow = 0
-  public internal(set) var rfGainStep = 0
-  public internal(set) var rfGainValues = ""
-  public internal(set) var waterfallId: UInt32 = 0
-  public internal(set) var wide = false
-  public internal(set) var wnbUpdating = false
-  public internal(set) var xvtrLabel = ""
+  public let id: PanadapterId
+  
+  public var initialized: Bool = false
+  public var isStreaming: Bool = false
+  public var antList = [String]()
+  public var clientHandle: Handle = 0
+  public var dbmValues = [LegendValue]()
+  public var delegate: StreamHandler?
+  public var fillLevel: Int = 0
+  public var freqValues = [LegendValue]()
+  public var maxBw: Hz = 0
+  public var minBw: Hz = 0
+  public var preamp = ""
+  public var rfGainHigh = 0
+  public var rfGainLow = 0
+  public var rfGainStep = 0
+  public var rfGainValues = ""
+  public var waterfallId: UInt32 = 0
+  public var wide = false
+  public var wnbUpdating = false
+  public var xvtrLabel = ""
   
   public var average: Int = 0
   public var band: String = ""

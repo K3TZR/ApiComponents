@@ -225,7 +225,7 @@ public actor Transmit {
   ///   - radio:      the current radio
   ///   - property:   a Transmit Token
   ///   - value:      the new value
-  public static func setProperty(radio: Radio, _ property: TransmitToken, value: Any) {
+  public static nonisolated func setProperty(radio: Radio, _ property: TransmitToken, value: Any) {
     // FIXME: add commands
   }
   

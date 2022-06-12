@@ -138,7 +138,7 @@ public actor Tnfs {
   ///   - id:         a Tnf Id
   ///   - property:   a Tnf Token
   ///   - value:      the new value
-  public static func setProperty(radio: Radio, id: TnfId, property: TnfToken, value: Any) {
+  public static nonisolated func setProperty(radio: Radio, id: TnfId, property: TnfToken, value: Any) {
     switch property {
     case .depth:       sendCommand( radio, id, .depth, value)
     case .frequency:   sendCommand( radio, id, .frequency, (value as! Hz).hzToMhz)
@@ -161,23 +161,20 @@ public actor Tnfs {
   }
 }
 
-// TNF Struct
-//       creates a Tnf instance to be used by a Client to support the
-//       rendering of a Tnf. Tnf structs are added, removed and
-//       updated by the incoming TCP messages. They are collected in the
-//       Model.tnfs collection.
+// ----------------------------------------------------------------------------
+// MARK: - Tnf Struct
 
 public struct Tnf: Identifiable, Equatable {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
 
-  public internal(set) var id: TnfId
-  public internal(set) var initialized = false
-
-  public internal(set) var depth: UInt = 0
-  public internal(set) var frequency: Hz = 0
-  public internal(set) var permanent = false
-  public internal(set) var width: Hz = 0
+  public let id: TnfId
+  
+  public var initialized = false
+  public var depth: UInt = 0
+  public var frequency: Hz = 0
+  public var permanent = false
+  public var width: Hz = 0
 
   // ----------------------------------------------------------------------------
   // MARK: - Initialization

@@ -96,14 +96,14 @@ public actor Gps {
   ///   Gps Install
   ///   - Parameters:
   ///     - callback:           ReplyHandler (optional)
-  public static func gpsInstall(radio: Radio, callback: ReplyHandler? = nil) {
+  public static nonisolated func gpsInstall(radio: Radio, callback: ReplyHandler? = nil) {
    radio.send("radio gps install", replyTo: callback)
   }
   
   /// Gps Un-Install
   /// - Parameters:
   ///   - callback:           ReplyHandler (optional)
-  public static func gpsUnInstall(radio: Radio, callback: ReplyHandler? = nil) {
+  public static nonisolated func gpsUnInstall(radio: Radio, callback: ReplyHandler? = nil) {
     radio.send("radio gps uninstall", replyTo: callback)
   }
 
@@ -112,7 +112,7 @@ public actor Gps {
   ///   - radio:      the current radio
   ///   - property:   a Gps Token
   ///   - value:      the new value
-  public static func setProperty(radio: Radio, _ property: GpsToken, value: Any) {
+  public static nonisolated func setProperty(radio: Radio, _ property: GpsToken, value: Any) {
     // FIXME: add commands
   }
 

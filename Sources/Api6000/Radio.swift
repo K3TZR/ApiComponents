@@ -216,6 +216,7 @@ public final class Radio: Equatable {
   var _interlock = Interlock()
   var _transmit = Transmit()
   var _wan = Wan()
+  var _waveform = Waveform()
 
   // ----------------------------------------------------------------------------
   // MARK: - Initialization

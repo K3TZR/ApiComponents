@@ -153,7 +153,7 @@ public actor Amplifiers {
   ///   - id:         a nAmplifier Id
   ///   - property:   an Amplifier Token
   ///   - value:      the new value
-  public static func setProperty(radio: Radio, id: AmplifierId, property: AmplifierToken, value: Any) {
+  public static nonisolated func setProperty(radio: Radio, id: AmplifierId, property: AmplifierToken, value: Any) {
     switch property {
     case .ant:            sendCommand( radio, id, .ant, value)
     case .handle:         sendCommand( radio, id, .handle, value)
@@ -179,27 +179,24 @@ public actor Amplifiers {
   }
 }
 
-// Amplifier Struct
-//       creates an Amplifier instance to be used by a Client to support the
-//       control of an external Amplifier. Amplifier structs are added, removed and
-//       updated by the incoming TCP messages. They are collected in the
-//       Model.amplifiers collection.
+// ----------------------------------------------------------------------------
+// MARK: - Amplifier Struct
 
 public struct Amplifier: Identifiable, Equatable {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var id: AmplifierId
-  public internal(set) var initialized = false
-
-  public internal(set) var ant: String = ""
-  public internal(set) var antennaDict = [String:String]()
-  public internal(set) var handle: Handle = 0
-  public internal(set) var ip: String = ""
-  public internal(set) var model: String = ""
-  public internal(set) var port: Int = 0
-  public internal(set) var serialNumber: String = ""
-  public internal(set) var state: String = ""
+  public let id: AmplifierId
+  
+  public var initialized = false
+  public var ant: String = ""
+  public var antennaDict = [String:String]()
+  public var handle: Handle = 0
+  public var ip: String = ""
+  public var model: String = ""
+  public var port: Int = 0
+  public var serialNumber: String = ""
+  public var state: String = ""
   
 
   // ------------------------------------------------------------------------------

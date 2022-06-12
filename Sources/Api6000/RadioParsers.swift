@@ -118,7 +118,10 @@ extension Radio {
       Task {
         await _wan.parseProperties(remainder.keyValuesArray())
       }
-    case .waveform:       Waveform.parseProperties(remainder.keyValuesArray(delimiter: "="))
+    case .waveform:
+      Task {
+        _waveform.parseProperties(remainder.keyValuesArray(delimiter: "="))
+      }
     case .xvtr:           Xvtr.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kNotInUse))
     }
     // is this status message the first for our handle?
