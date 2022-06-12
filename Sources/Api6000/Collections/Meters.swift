@@ -16,6 +16,9 @@ public actor Meters {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
+  public static var meterPublisher = PassthroughSubject<Meter, Never>()
+  public static var metersAreStreaming = false
+  
   public enum MeterToken: String {
     case desc
     case fps
@@ -230,14 +233,6 @@ public actor Meters {
       }
     }
   }
-
-  /// Set the value of a Meter
-  /// - Parameters:
-  ///   - id:         the MeterId of the specified meter
-  ///   - value:      the current value
-//  public func setValue(_ id: MeterId, value: Float) {
-//    _meters[id: id]!.value = value
-//  }
 }
 
 // ----------------------------------------------------------------------------
@@ -261,9 +256,6 @@ public struct Meter: Identifiable, Equatable {
   public var units = ""
   public var value: Float = 0
 
-  public static var meterPublisher = PassthroughSubject<Meter, Never>()
-  public static var metersAreStreaming = false
-  
   public enum Source: String {
     case codec     = "cod"
     case tx

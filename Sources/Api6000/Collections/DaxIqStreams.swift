@@ -51,9 +51,7 @@ public actor DaxIqStreams {
   
   /// Parse a Stream status message
   /// - Parameters:
-  ///   - keyValues:      a KeyValuesArray
-  ///   - radio:          the current Radio class
-  ///   - queue:          a parse Queue for the object
+  ///   - properties:     a KeyValuesArray
   ///   - inUse:          false = "to be deleted"
   public func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
     // get the Id
@@ -160,7 +158,6 @@ public actor DaxIqStreams {
   }
 }
 
-
 // ----------------------------------------------------------------------------
 // MARK: - DaxIqStream Struct
 
@@ -245,7 +242,9 @@ public struct DaxIqStream: Identifiable {
   }
 }
 
-/// Struct containing Dax IQ Stream data
+// ----------------------------------------------------------------------------
+// MARK: -  Dax IQ Stream data Struct
+
 public struct DaxIqStreamFrame {
   
   // ----------------------------------------------------------------------------

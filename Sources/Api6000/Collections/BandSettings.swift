@@ -144,7 +144,7 @@ public actor BandSettings {
   ///   - id:         a BandSetting Id
   ///   - property:   a Tnf Token
   ///   - value:      the new value
-  public static nonisolated func setProperty(radio: Radio, id: BandSettingId, property: BandSettingToken, value: Any) {
+  public static nonisolated func setProperty(radio: Radio, id: BandId, property: BandSettingToken, value: Any) {
     // FIXME: add commands
   }
   
@@ -157,7 +157,7 @@ public actor BandSettings {
   ///   - id:         the Id for the specified Tnf
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ id: TnfId, _ token: TnfToken, _ value: Any) {
+  private static func sendCommand(_ radio: Radio, _ id: BandId, _ token: BandSettingToken, _ value: Any) {
     // FIXME: add commands
   }
 }

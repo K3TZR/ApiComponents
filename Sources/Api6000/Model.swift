@@ -53,11 +53,18 @@ public class Model: ObservableObject, Equatable {
   public func setAtu(_ atu: Atu) { self.atu = atu }
   public func setBandSettings(_ bandSettings: IdentifiedArrayOf<BandSetting>) { self.bandSettings = bandSettings  }
   public func setDaxIqStreams(_ daxIqStreams: IdentifiedArrayOf<DaxIqStream>) { self.daxIqStreams = daxIqStreams  }
+  public func setDaxMicAudioStreams(_ daxMicAudioStreams: IdentifiedArrayOf<DaxMicAudioStream>) { self.daxMicAudioStreams = daxMicAudioStreams  }
+  public func setDaxRxAudioStreams(_ daxRxAudioStreams: IdentifiedArrayOf<DaxRxAudioStream>) { self.daxRxAudioStreams = daxRxAudioStreams  }
+  public func setDaxTxAudioStreams(_ daxTxAudioStreams: IdentifiedArrayOf<DaxTxAudioStream>) { self.daxTxAudioStreams = daxTxAudioStreams  }
   public func setEqualizers(_ equalizers: IdentifiedArrayOf<Equalizer>) { self.equalizers = equalizers  }
   public func setGps(_ gps: Gps) { self.gps = gps  }
   public func setInterlock(_ interlock: Interlock) { self.interlock = interlock }
   public func setMemories(_ memories: IdentifiedArrayOf<Memory>) { self.memories = memories }
   public func setMeters(_ meters: IdentifiedArrayOf<Meter>) { self.meters = meters }
+  public func setRemoteRxAudioStreams(_ remoteRxAudioStreams: IdentifiedArrayOf<RemoteRxAudioStream>) { self.remoteRxAudioStreams = remoteRxAudioStreams }
+  public func setRemoteTxAudioStreams(_ remoteTxAudioStreams: IdentifiedArrayOf<RemoteTxAudioStream>) { self.remoteTxAudioStreams = remoteTxAudioStreams }
+
+  
   public func setSlices(_ slices: IdentifiedArrayOf<Slice>) { self.slices = slices }
   public func setTnfs(_ tnfs: IdentifiedArrayOf<Tnf>) { self.tnfs = tnfs }
   public func setTransmit(_ transmit: Transmit) { self.transmit = transmit }
