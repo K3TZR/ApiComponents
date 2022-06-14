@@ -7,7 +7,7 @@
 
 import Foundation
 
-import Shared
+import ApiShared
 
 // Waveform Actor implementation
 //      creates a Waveform instance to be used by a Client to support the

@@ -7,7 +7,7 @@
 
 import Foundation
 
-import Shared
+import ApiShared
 
 // Wan Actor implementation
 //

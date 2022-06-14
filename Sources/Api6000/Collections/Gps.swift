@@ -7,7 +7,7 @@
 
 import Foundation
 
-import Shared
+import ApiShared
 
 // Gps Actor implementation
 //      creates a Gps instance to be used by a Client to support the

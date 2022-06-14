@@ -7,7 +7,7 @@
 
 import Foundation
 
-import Shared
+import ApiShared
 
 extension Radio {
   // ----------------------------------------------------------------------------
@@ -62,7 +62,15 @@ extension Radio {
       case "mic list":      micList = otherData.valuesArray(  delimiter: "," )
       case "radio uptime":  uptime = Int(otherData) ?? 0
       case "version":       parseVersionReply( otherData.keyValuesArray(delimiter: "#") )
-      default:              if command.hasPrefix("wan validate") { updateState(to: .wanHandleValidated(success: reply == Shared.kNoError)) }
+      default:
+        if command.hasPrefix("wan validate") { updateState(to: .wanHandleValidated(success: reply == ApiShared.kNoError)) }
+        if command.hasPrefix("display pan rf_gain_info") {
+          // parse out the values
+          let rfGainInfo = reply.valuesArray( delimiter: "," )
+          Task {
+            await Panadapters.shared.rfGainValues(values: rfGainInfo.map {$0.iValue} )
+          }
+        }
       }
 
       // was a Handler specified?

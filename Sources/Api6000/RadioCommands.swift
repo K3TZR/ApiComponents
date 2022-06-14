@@ -9,7 +9,7 @@ import Foundation
 import ComposableArchitecture
 import CoreGraphics
 
-import Shared
+import ApiShared
 
 extension Radio {    
   // ----------------------------------------------------------------------------

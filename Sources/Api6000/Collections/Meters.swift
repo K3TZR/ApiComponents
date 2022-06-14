@@ -9,8 +9,8 @@ import Foundation
 import IdentifiedCollections
 import Combine
 
-import Shared
-import Vita
+import ApiShared
+import ApiVita
 
 public actor Meters {
   // ----------------------------------------------------------------------------

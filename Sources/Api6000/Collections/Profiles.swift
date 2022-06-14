@@ -8,7 +8,7 @@
 import Foundation
 import IdentifiedCollections
 
-import Shared
+import ApiShared
 
 public actor Profiles {
   // ----------------------------------------------------------------------------

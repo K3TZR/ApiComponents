@@ -13,8 +13,8 @@ let package = Package(
     .library(name: "Api6000", targets: ["Api6000"]),
     .library(name: "TcpCommands", targets: ["TcpCommands"]),
     .library(name: "UdpStreams", targets: ["UdpStreams"]),
-//    .library(name: "LanDiscovery", targets: ["LanDiscovery"]),
-//    .library(name: "WanDiscovery", targets: ["WanDiscovery"]),
+    .library(name: "ApiShared", targets: ["ApiShared"]),
+    .library(name: "ApiVita", targets: ["ApiVita"]),
   ],
   dependencies: [
     .package(url: "https://github.com/robbiehanson/CocoaAsyncSocket", from: "7.6.5"),
@@ -25,6 +25,15 @@ let package = Package(
   ],
   targets: [
     // --------------- Modules ---------------
+    // Shared
+    .target(name: "ApiShared",dependencies: [
+      .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+    ]),
+
+    // Vita
+    .target(name: "ApiVita",dependencies: [
+    ]),
+
     // Api6000
     .target(name: "Api6000",dependencies: [
       "TcpCommands",
@@ -47,15 +56,18 @@ let package = Package(
     
     // TcpCommands
     .target(name: "TcpCommands",dependencies: [
-      .product(name: "Shared", package: "UtilityComponents"),
+      "ApiShared",
+//      .product(name: "Shared", package: "UtilityComponents"),
       .product(name: "CocoaAsyncSocket", package: "CocoaAsyncSocket"),
     ]),
     
     // UdpStreams
     .target(name: "UdpStreams",dependencies: [
-      .product(name: "Shared", package: "UtilityComponents"),
+      "ApiShared",
+      "ApiVita",
+//      .product(name: "Shared", package: "UtilityComponents"),
       .product(name: "CocoaAsyncSocket", package: "CocoaAsyncSocket"),
-      .product(name: "Vita", package: "UtilityComponents"),
+//      .product(name: "Vita", package: "UtilityComponents"),
     ]),
 
     // WanDiscovery

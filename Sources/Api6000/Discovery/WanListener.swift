@@ -10,7 +10,7 @@ import CocoaAsyncSocket
 import Combine
 
 import LoginView
-import Shared
+import ApiShared
 
 
 ///  WanListener Class implementation

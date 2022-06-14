@@ -11,8 +11,8 @@ import Combine
 //import LanDiscovery
 import TcpCommands
 import UdpStreams
-import Shared
-import Vita
+import ApiShared
+import ApiVita
 
 public final class Radio: Equatable {
   // ----------------------------------------------------------------------------
@@ -277,12 +277,12 @@ public final class Radio: Equatable {
         self?.udpStatus(status)
       }
     
-    _cancellablePacketUpdate = Discovered.shared.packetPublisher
+    _cancellablePacketUpdate = packetPublisher
       .sink { [weak self] update in
         self?.packetUpdate(update)
       }
 
-    _cancellableClientUpdate = Discovered.shared.clientPublisher
+    _cancellableClientUpdate = clientPublisher
       .sink { [weak self] update in
         self?.clientUpdate(update)
       }
@@ -413,16 +413,20 @@ public final class Radio: Equatable {
       
     case .meter:
       // unlike other streams, the Meter stream contains multiple Meters
-      // and is processed by a class method on the Meter object
-      Meter.vitaProcessor(vitaPacket)
+      // and is processed by a class method on the Meters object
+      Task {
+        await Meters.shared.vitaProcessor(vitaPacket)
+      }
       
     case .panadapter:
-      if var object = Model.shared.panadapters[id: vitaPacket.streamId]
-      { object.vitaProcessor(vitaPacket, _testerModeEnabled) }
+      break
+//      if var object = Model.shared.panadapters[id: vitaPacket.streamId]
+//      { object.vitaProcessor(vitaPacket, _testerModeEnabled) }
       
     case .waterfall:
-      if var object = Model.shared.waterfalls[id: vitaPacket.streamId]
-      { object.vitaProcessor(vitaPacket, _testerModeEnabled) }
+      break
+//      if var object = Model.shared.waterfalls[id: vitaPacket.streamId]
+//      { object.vitaProcessor(vitaPacket, _testerModeEnabled) }
 
     case .daxAudio:
       break
@@ -623,28 +627,28 @@ public final class Radio: Equatable {
   /// Remove all Radio objects
   private func removeAllObjects() {    
     // ----- remove all objects -----, NOTE: order is important
-    DaxRxAudioStream.removeAll()
-    DaxIqStream.removeAll()
-    DaxMicAudioStream.removeAll()
-    DaxTxAudioStream.removeAll()
-    RemoteRxAudioStream.removeAll()
-    RemoteTxAudioStream.removeAll()
-    BandSetting.removeAll()
     Task {
+      await DaxRxAudioStreams.shared.removeAll()
+      await DaxIqStreams.shared.removeAll()
+      await DaxMicAudioStreams.shared.removeAll()
+      await DaxTxAudioStreams.shared.removeAll()
+      await RemoteRxAudioStreams.shared.removeAll()
+      await RemoteTxAudioStreams.shared.removeAll()
+      await BandSettings.shared.removeAll()
       await Amplifiers.shared.removeAll()
       await Tnfs.shared.removeAll()
       await Waterfalls.shared.removeAll()
       await Panadapters.shared.removeAll()
+      await Slices.shared.removeAll()
+      await Profiles.shared.removeAll()
+      await Equalizers.shared.removeAll()
+      await Memories.shared.removeAll()
+      await Meters.shared.removeAll()
+      await UsbCables.shared.removeAll()
+      await Xvtrs.shared.removeAll()
     }
-    Slice.removeAll()
-    Profile.removeAll()
-    Equalizer.removeAll()
-    Memory.removeAll()
-    Meter.removeAll()
     
     replyHandlers.removeAll()
-    UsbCable.removeAll()
-    Xvtr.removeAll()
     
     nickname = ""
     smartSdrMB = ""

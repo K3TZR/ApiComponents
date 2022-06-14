@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Shared
+import ApiShared
 
 extension WanListener {
   // ------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ extension WanListener {
       }
       if _publicIp != nil {
         // publish
-        Discovered.shared.wanStatusPublisher.send(WanStatus(.publicIp, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
+        wanStatusPublisher.send(WanStatus(.publicIp, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
       }
     }
   }
@@ -169,7 +169,7 @@ extension WanListener {
     
     if _firstName != nil && _lastName != nil && _callsign != nil {
       // publish
-      Discovered.shared.wanStatusPublisher.send(WanStatus(.settings, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
+      wanStatusPublisher.send(WanStatus(.settings, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
     }
   }
   
@@ -197,7 +197,7 @@ extension WanListener {
     
     if _wanHandle != nil && _serial != nil {
       // publish
-      Discovered.shared.wanStatusPublisher.send(WanStatus(.connect, nil, nil, _serial, _wanHandle, _publicIp))
+      wanStatusPublisher.send(WanStatus(.connect, nil, nil, _serial, _wanHandle, _publicIp))
     }
   }
   
@@ -214,7 +214,7 @@ extension WanListener {
     log("Wan Parser: RadioList received", .debug, #function, #file, #line)
 
     for message in radioMessages where message != "" {
-      packet = Packet.populate( message.keyValuesArray() )
+      packet = Packets.shared.parseProperties( message.keyValuesArray() )
       // now continue to fill the radio parameters
       // favor using the manually defined forwarded ports if they are defined
       if let tlsPort = packet.publicTlsPort, let udpPort = packet.publicUdpPort {
@@ -242,7 +242,10 @@ extension WanListener {
       }
       packet.source = .smartlink
       // add packet to Packets
-      Discovered.shared.processPacket(packet)
+      let packetToProcess = packet
+      Task {
+        await Packets.shared.processPacket(packetToProcess)
+      }
     }
   }
   

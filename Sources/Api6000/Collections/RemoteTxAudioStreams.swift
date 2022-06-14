@@ -8,8 +8,8 @@
 import Foundation
 import IdentifiedCollections
 
-import Vita
-import Shared
+import ApiVita
+import ApiShared
 
 public actor RemoteTxAudioStreams {
   // ----------------------------------------------------------------------------

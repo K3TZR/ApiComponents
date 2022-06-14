@@ -7,8 +7,8 @@
 //
 
 import Foundation
-import Shared
-import Vita
+import ApiShared
+import ApiVita
 
 // --------------------------------------------------------------------------------
 // MARK: - Protocols

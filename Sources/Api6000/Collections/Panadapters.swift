@@ -8,13 +8,17 @@
 import Foundation
 import IdentifiedCollections
 
-import Shared
-import Vita
+import ApiShared
+import ApiVita
 
 public actor Panadapters {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
+  public var rfGainLow: Int = 0
+  public var rfGainHigh: Int = 0
+  public var rfGainStep: Int = 0
+
   public enum PanadapterToken : String {
     // on Panadapter
     case antList                    = "ant_list"
@@ -76,8 +80,14 @@ public actor Panadapters {
     updateModel()
   }
   
-  public func exists(id:PanadapterId) -> Bool {
+  public func exists(id: PanadapterId) -> Bool {
     _panadapters[id: id] != nil
+  }
+  
+  public func rfGainValues( values: [Int]) {
+    rfGainLow = values[0]
+    rfGainHigh = values[1]
+    rfGainStep = values[2]
   }
   
   /// Parse a Panadapter status message
@@ -175,7 +185,7 @@ public actor Panadapters {
     if _panadapters[id: id]?.initialized == false && _panadapters[id: id]?.center != 0 && _panadapters[id: id]?.bandwidth != 0 && (_panadapters[id: id]?.minDbm != 0.0 || _panadapters[id: id]?.maxDbm != 0.0) {
       // NO, it is now
       _panadapters[id: id]?.initialized = true
-      log("Panadapter \(id.hex): initialized center = \(_panadapters[id: id]?.center.hzToMhz), bandwidth = \(_panadapters[id: id]?.bandwidth.hzToMhz)", .debug, #function, #file, #line)
+      log("Panadapter \(id.hex): initialized center = \(_panadapters[id: id]?.center.hzToMhz ?? ""), bandwidth = \(_panadapters[id: id]?.bandwidth.hzToMhz ?? "")", .debug, #function, #file, #line)
     }
     updateModel()
   }
@@ -283,10 +293,10 @@ public struct Panadapter: Identifiable {
   public var maxBw: Hz = 0
   public var minBw: Hz = 0
   public var preamp = ""
-  public var rfGainHigh = 0
-  public var rfGainLow = 0
-  public var rfGainStep = 0
-  public var rfGainValues = ""
+//  public var rfGainHigh = 0
+//  public var rfGainLow = 0
+//  public var rfGainStep = 0
+//  public var rfGainValues = ""
   public var waterfallId: UInt32 = 0
   public var wide = false
   public var wnbUpdating = false
@@ -369,28 +379,6 @@ public struct Panadapter: Identifiable {
     for _ in 0..<_numberOfFrames {
       _frames.append(PanadapterFrame(frameSize: Panadapter.kMaxBins))
     }
-  }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Private methods
-  
-  /// Process the Reply to an Rf Gain Info command, reply format: <value>,<value>,...<value>
-  /// - Parameters:
-  ///   - seqNum:         the Sequence Number of the original command
-  ///   - responseValue:  the response value
-  ///   - reply:          the reply
-  public func rfGainReplyHandler(_ command: String, sequenceNumber: SequenceNumber, responseValue: String, reply: String) {
-    // Anything other than 0 is an error
-    guard responseValue == Shared.kNoError else {
-      // log it and ignore the Reply
-      log("Panadapter, non-zero reply: \(command), \(responseValue), \(flexErrorString(errorCode: responseValue))", .warning, #function, #file, #line)
-      return
-    }
-    // parse out the values
-    let rfGainInfo = reply.valuesArray( delimiter: "," )
-    Model.shared.panadapters[id: id]!.rfGainLow = rfGainInfo[0].iValue
-    Model.shared.panadapters[id: id]!.rfGainHigh = rfGainInfo[1].iValue
-    Model.shared.panadapters[id: id]!.rfGainStep = rfGainInfo[2].iValue
   }
   
   // ----------------------------------------------------------------------------

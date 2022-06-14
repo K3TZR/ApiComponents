@@ -7,7 +7,7 @@
 
 import Foundation
 
-import Shared
+import ApiShared
 
 // Transmit Actor implementation
 //      creates a Transmit instance to be used by a Client to support the

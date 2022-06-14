@@ -11,7 +11,7 @@ import Combine
 import JWTDecode
 
 import LoginView
-import Shared
+import ApiShared
 import SecureStorage
 
 final public class Authentication {

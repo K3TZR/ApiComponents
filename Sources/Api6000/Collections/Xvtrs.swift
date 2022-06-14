@@ -8,7 +8,7 @@
 import Foundation
 import IdentifiedCollections
 
-import Shared
+import ApiShared
 
 public actor Xvtrs {
   // ----------------------------------------------------------------------------
@@ -54,7 +54,7 @@ public actor Xvtrs {
   /// - Parameters:
   ///   - keyValues:      a KeyValuesArray
   ///   - inUse:          false = "to be deleted"
-  static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true ) {
+  public func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true ) {
     // get the id
     if let id = properties[0].key.objectId {
       // isthe Xvtr in use?
@@ -123,7 +123,7 @@ public actor Xvtrs {
     if _xvtrs[id: id]?.initialized == false {
       // NO, it is now
       _xvtrs[id: id]?.initialized = true
-      log("Xvtr \(id): initialized name = \(_xvtrs[id: id]?.name)", .debug, #function, #file, #line)
+      log("Xvtr \(id): initialized name = \(_xvtrs[id: id]?.name ?? "")", .debug, #function, #file, #line)
     }
     updateModel()
   }

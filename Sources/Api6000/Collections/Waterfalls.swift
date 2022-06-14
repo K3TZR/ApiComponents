@@ -8,8 +8,8 @@
 import Foundation
 import IdentifiedCollections
 
-import Shared
-import Vita
+import ApiShared
+import ApiVita
 
 public actor Waterfalls {
   

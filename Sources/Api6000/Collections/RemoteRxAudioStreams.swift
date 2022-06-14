@@ -8,8 +8,8 @@
 import Foundation
 import IdentifiedCollections
 
-import Vita
-import Shared
+import ApiVita
+import ApiShared
 
 public actor RemoteRxAudioStreams {
   // ----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ public actor RemoteRxAudioStreams {
     if _remoteRxAudioStreams[id: id]?.initialized == false && _remoteRxAudioStreams[id: id]?.clientHandle != 0 {
       // NO, it is now
       _remoteRxAudioStreams[id: id]?.initialized = true
-      log("RemoteRxAudioStream \(id.hex): initialized handle = \(_remoteRxAudioStreams[id: id]?.clientHandle.hex)", .debug, #function, #file, #line)
+      log("RemoteRxAudioStream \(id.hex): initialized handle = \(_remoteRxAudioStreams[id: id]?.clientHandle.hex ?? "")", .debug, #function, #file, #line)
     }
     updateModel()
   }

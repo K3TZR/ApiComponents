@@ -8,19 +8,17 @@
 import Foundation
 import IdentifiedCollections
 
-import Shared
+import ApiShared
 
 @MainActor
 public class Model: ObservableObject, Equatable {
-  
-  public nonisolated static func == (lhs: Model, rhs: Model) -> Bool {
-    // object equality since it is a "sharedInstance"
-    lhs === rhs
-  }
-  
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
+  // object equality since it is a "sharedInstance"
+  public nonisolated static func == (lhs: Model, rhs: Model) -> Bool { lhs === rhs }
+  
+  // dynamic objects
   @Published public var amplifiers = IdentifiedArrayOf<Amplifier>()
   @Published public var bandSettings = IdentifiedArrayOf<BandSetting>()
   @Published public var daxIqStreams = IdentifiedArrayOf<DaxIqStream>()
@@ -40,6 +38,7 @@ public class Model: ObservableObject, Equatable {
   @Published public var waterfalls = IdentifiedArrayOf<Waterfall>()
   @Published public var xvtrs = IdentifiedArrayOf<Xvtr>()
 
+  // static objects
   @Published public var atu = Atu()
   @Published public var gps = Gps()
   @Published public var interlock = Interlock()
@@ -47,8 +46,11 @@ public class Model: ObservableObject, Equatable {
   @Published public var wan = Wan()
   @Published public var waveform = Waveform()
 
+  // packets
   @Published public var packets = IdentifiedArrayOf<Packet>()
+  @Published public var guiClients = IdentifiedArrayOf<GuiClient>()
 
+  // model update functions
   public func setAmplifiers(_ amplifiers: IdentifiedArrayOf<Amplifier>) { self.amplifiers = amplifiers }
   public func setAtu(_ atu: Atu) { self.atu = atu }
   public func setBandSettings(_ bandSettings: IdentifiedArrayOf<BandSetting>) { self.bandSettings = bandSettings  }
@@ -58,13 +60,13 @@ public class Model: ObservableObject, Equatable {
   public func setDaxTxAudioStreams(_ daxTxAudioStreams: IdentifiedArrayOf<DaxTxAudioStream>) { self.daxTxAudioStreams = daxTxAudioStreams  }
   public func setEqualizers(_ equalizers: IdentifiedArrayOf<Equalizer>) { self.equalizers = equalizers  }
   public func setGps(_ gps: Gps) { self.gps = gps  }
+  public func setGuiClients(_ guiClients: IdentifiedArrayOf<GuiClient>) { self.guiClients = guiClients }
   public func setInterlock(_ interlock: Interlock) { self.interlock = interlock }
   public func setMemories(_ memories: IdentifiedArrayOf<Memory>) { self.memories = memories }
   public func setMeters(_ meters: IdentifiedArrayOf<Meter>) { self.meters = meters }
+  public func setPackets(_ packets: IdentifiedArrayOf<Packet>) { self.packets = packets }
   public func setRemoteRxAudioStreams(_ remoteRxAudioStreams: IdentifiedArrayOf<RemoteRxAudioStream>) { self.remoteRxAudioStreams = remoteRxAudioStreams }
   public func setRemoteTxAudioStreams(_ remoteTxAudioStreams: IdentifiedArrayOf<RemoteTxAudioStream>) { self.remoteTxAudioStreams = remoteTxAudioStreams }
-
-  
   public func setSlices(_ slices: IdentifiedArrayOf<Slice>) { self.slices = slices }
   public func setTnfs(_ tnfs: IdentifiedArrayOf<Tnf>) { self.tnfs = tnfs }
   public func setTransmit(_ transmit: Transmit) { self.transmit = transmit }
@@ -81,11 +83,4 @@ public class Model: ObservableObject, Equatable {
   
   public static var shared = Model()
   private init() {}
-
-  public func removePackets(ofType source: PacketSource) {
-    for packet in packets where packet.source == source {
-      packets.remove(id: packet.id)
-    }
-  }
-
 }

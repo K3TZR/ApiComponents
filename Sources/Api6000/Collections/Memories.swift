@@ -8,7 +8,7 @@
 import Foundation
 import IdentifiedCollections
 
-import Shared
+import ApiShared
 
 public actor Memories {
   // ----------------------------------------------------------------------------
@@ -65,7 +65,7 @@ public actor Memories {
   /// - Parameters:
   ///   - properties:     a KeyValuesArray of Memory properties
   ///   - inUse:          false = "to be deleted"
-  public static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
+  public func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
     // get the Id
     if let id = properties[0].key.objectId {
       // is the object in use?

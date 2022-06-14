@@ -7,7 +7,7 @@
 
 import Foundation
 
-import Shared
+import ApiShared
 // import LogProxy
 
 /// Cwx Actor implementation

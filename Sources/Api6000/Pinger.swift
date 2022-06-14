@@ -10,7 +10,7 @@ import Foundation
 import Combine
 
 import TcpCommands
-import Shared
+import ApiShared
 
 public enum PingStatus {
   case started

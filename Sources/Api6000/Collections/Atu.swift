@@ -8,7 +8,7 @@
 import Foundation
 import IdentifiedCollections
 
-import Shared
+import ApiShared
 
 // Atu Actor implementation
 //      creates an Atu instance to be used by a Client to support the

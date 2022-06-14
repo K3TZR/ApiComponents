@@ -7,7 +7,7 @@
 
 import Foundation
 
-import Shared
+import ApiShared
 
 // Interlock Actor implementation
 //      creates an Interlock instance to be used by a Client to support the

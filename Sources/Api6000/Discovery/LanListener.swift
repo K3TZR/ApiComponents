@@ -11,8 +11,8 @@ import IdentifiedCollections
 import Combine
 
 import CocoaAsyncSocket
-import Vita
-import Shared
+import ApiVita
+import ApiShared
 
 public enum LanListenerError: Error {
   case kSocketError
@@ -29,7 +29,6 @@ final public class LanListener: NSObject, ObservableObject {
   // MARK: - Public properties
   
   public var clientPublisher = PassthroughSubject<ClientUpdate, Never>()
-  public var packetPublisher = PassthroughSubject<PacketUpdate, Never>()
 
   // ----------------------------------------------------------------------------
   // MARK: - Private properties
@@ -66,7 +65,7 @@ final public class LanListener: NSObject, ObservableObject {
     Timer.publish(every: checkInterval, on: .main, in: .default)
       .autoconnect()
       .sink { now in
-        self.remove(condition: { $0.source == .local && abs($0.lastSeen.timeIntervalSince(now)) > timeout } )
+        self.removeExpired(asof: now - timeout)
       }
       .store(in: &_cancellables)
   }
@@ -85,12 +84,15 @@ final public class LanListener: NSObject, ObservableObject {
   
   /// Remove a packet from the collection
   /// - Parameter condition:  a closure defining the condition for removal
-  private func remove(condition: (Packet) -> Bool) {
-    for packet in Model.shared.packets where condition(packet) {
-      let removedPacket = Model.shared.packets.remove(id: packet.id)
-      packetPublisher.send(PacketUpdate(.deleted, packet: removedPacket!))
-      log("Lan Listener: packet removed, interval = \(abs(removedPacket!.lastSeen.timeIntervalSince(Date())))", .debug, #function, #file, #line)
+private func removeExpired(asof: Date) {
+    Task {
+      await Packets.shared.removeExpired( asof)
     }
+//    for packet in Model.shared.packets where condition(packet) {
+//      let removedPacket = Model.shared.packets.remove(id: packet.id)
+//      packetPublisher.send(PacketUpdate(.deleted, packet: removedPacket!))
+//      log("Lan Listener: packet removed, interval = \(abs(removedPacket!.lastSeen.timeIntervalSince(Date())))", .debug, #function, #file, #line)
+//    }
   }
 
   /// Parse a Vita class containing a Discovery broadcast
@@ -105,7 +107,7 @@ final public class LanListener: NSObject, ObservableObject {
       // eliminate any Nulls at the end of the payload
       payloadData = payloadData.trimmingCharacters(in: CharacterSet(charactersIn: "\0"))
       
-      return Packet.populate( payloadData.keyValuesArray() )
+      return Packets.shared.parseProperties( payloadData.keyValuesArray() )
     }
     return nil
   }
@@ -129,10 +131,12 @@ extension LanListener: GCDAsyncUdpSocketDelegate {
     // VITA packet?
     guard let vita = Vita.decode(from: data) else { return }
     
-    // YES, Discovery Packet?
+    // YES, Discovery packet?
     guard let packet = parseVita(vita) else { return }
-    
+
     // YES, process it
-    Discovered.shared.processPacket(packet)
+    Task {
+      await Packets.shared.processPacket(packet)
+    }
   }
 }

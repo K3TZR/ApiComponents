@@ -8,8 +8,8 @@
 import Foundation
 import IdentifiedCollections
 
-import Vita
-import Shared
+import ApiVita
+import ApiShared
 
 public actor DaxRxAudioStreams {
   // ----------------------------------------------------------------------------
@@ -50,7 +50,7 @@ public actor DaxRxAudioStreams {
   /// - Parameters:
   ///   - properties:     a KeyValuesArray
   ///   - inUse:          false = "to be deleted"
-  public static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
+  public func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
     // get the Id
     if let id =  properties[0].key.streamId {
       // is the object in use?
@@ -126,7 +126,7 @@ public actor DaxRxAudioStreams {
     if _daxRxAudioStreams[id: id]?.initialized == false && _daxRxAudioStreams[id: id]?.clientHandle != 0 {
       // NO, it is now
       _daxRxAudioStreams[id: id]?.initialized = true
-      log("DaxRxAudioStream \(id.hex): initialized handle = \(_daxRxAudioStreams[id: id]?.clientHandle.hex)", .debug, #function, #file, #line)
+      log("DaxRxAudioStream \(id.hex): initialized handle = \(_daxRxAudioStreams[id: id]?.clientHandle.hex ?? "")", .debug, #function, #file, #line)
 
     }
     updateModel()

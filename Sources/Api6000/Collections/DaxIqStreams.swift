@@ -9,8 +9,8 @@ import Foundation
 import Accelerate
 import IdentifiedCollections
 
-import Shared
-import Vita
+import ApiShared
+import ApiVita
 
 public actor DaxIqStreams {
   // ----------------------------------------------------------------------------
