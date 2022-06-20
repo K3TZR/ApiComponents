@@ -10,8 +10,8 @@ import Foundation
 import CocoaAsyncSocket
 import Combine
 
-import Vita
-import Shared
+import ApiVita
+import ApiShared
 
 // ----------------------------------------------------------------------------
 // MARK: - Public structs and enums

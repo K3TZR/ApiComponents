@@ -9,7 +9,7 @@ import Foundation
 import CocoaAsyncSocket
 import Combine
 
-import Shared
+import ApiShared
 
 // ----------------------------------------------------------------------------
 // MARK: - Public structs and enums

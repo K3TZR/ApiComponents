@@ -8,8 +8,8 @@
 import Foundation
 import CocoaAsyncSocket
 
-import Vita
-import Shared
+import ApiVita
+import ApiShared
 
 extension Udp: GCDAsyncUdpSocketDelegate {
   
