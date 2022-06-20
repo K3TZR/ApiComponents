@@ -131,6 +131,12 @@ public actor Packets {
     }
   }
 
+  public func remove(type source: PacketSource) {
+    for packet in _packets where packet.source == source {
+      remove(packet.id)
+    }
+  }
+  
   /// Remove a Packet
   /// - Parameter id:   a Packet Id
   public func remove(_ id: UUID)  {
