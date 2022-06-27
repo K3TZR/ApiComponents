@@ -44,7 +44,7 @@ public struct UdpStatus: Identifiable, Equatable {
 
 ///  UDP Stream Class implementation
 ///      manages all Udp communication with a Radio
-final public class Udp: NSObject {
+final public class Udp: NSObject, GCDAsyncUdpSocketDelegate {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
@@ -208,4 +208,29 @@ final public class Udp: NSObject {
       log("UdpStream: register wan exited, Registration = \(self._isRegistered)", .debug, #function, #file, #line)
     }
   }
-}
+
+  /// Send message (as Data) to the Radio using UDP on the current ip & port
+  /// - Parameters:
+  ///   - data:               a Data
+  public func send(_ data: Data) {
+    _socket.send(data, toHost: sendIp, port: sendPort, withTimeout: -1, tag: 0)
+  }
+
+  public func udpSocket(_ sock: GCDAsyncUdpSocket, didReceive data: Data, fromAddress address: Data, withFilterContext filterContext: Any?) {
+    _processQ.async { [weak self] in
+      
+      if let vita = Vita.decode(from: data) {
+        // TODO: Packet statistics - received, dropped
+        
+        // a VITA packet was received therefore registration was successful
+        self?._isRegistered = true
+        
+        // publish
+        self?.streamPublisher.send( vita )
+        
+      }
+      else {
+        log("UdpStream: Unable to decode Vita packet", .warning, #function, #file, #line)
+      }
+    }
+  }}

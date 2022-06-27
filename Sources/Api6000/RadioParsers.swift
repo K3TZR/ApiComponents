@@ -7,7 +7,6 @@
 
 import Foundation
 
-import TcpCommands
 import Shared
 
 extension Radio {

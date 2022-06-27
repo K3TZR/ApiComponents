@@ -8,9 +8,6 @@
 import Foundation
 import Combine
 
-//import LanDiscovery
-import TcpCommands
-import UdpStreams
 import Shared
 import Vita
 
@@ -24,14 +21,12 @@ public final class Radio: Equatable {
   public static let kDaxChannels      = ["None", "1", "2", "3", "4", "5", "6", "7", "8"]
   public static let kDaxIqChannels    = ["None", "1", "2", "3", "4"]
   
+  // FIXME: needs to be dynamic
   public var packet: Packet
   public var pingerEnabled = true
   public var radioState: RadioState = .clientDisconnected
   public var connectionHandle: Handle?
   public var hardwareVersion: String?
-  public var replyHandlers : [SequenceNumber: ReplyTuple] {
-    get { Radio.objectQ.sync { _replyHandlers } }
-    set { Radio.objectQ.sync(flags: .barrier) { _replyHandlers = newValue }}}
     
   public internal(set) var antennaList = [AntennaPort]()
   public internal(set) var atuPresent = false
@@ -205,7 +200,6 @@ public final class Radio: Equatable {
   var _pinger: Pinger?
   var _programName: String?
   var _radioInitialized = false
-  var _replyHandlers = [SequenceNumber: ReplyTuple]()
   var _stationName: String?
   var _tcp: Tcp
   var _testerModeEnabled: Bool
@@ -214,11 +208,11 @@ public final class Radio: Equatable {
   // ----------------------------------------------------------------------------
   // MARK: - Initialization
   
-  public init(_ packet: Packet, connectionType: ConnectionType, command: Tcp, stream: Udp, stationName: String? = nil, programName: String? = nil, lowBandwidthConnect: Bool = false, lowBandwidthDax: Bool = false, disconnectHandle: Handle? = nil, testerModeEnabled: Bool = false) {
+  public init(_ packet: Packet, connectionType: ConnectionType = .gui, stationName: String? = nil, programName: String? = nil, lowBandwidthConnect: Bool = false, lowBandwidthDax: Bool = false, disconnectHandle: Handle? = nil, testerModeEnabled: Bool = false) {
     self.packet = packet
     _connectionType = connectionType
-    _tcp = command
-    _udp = stream
+    _tcp = Tcp()
+    _udp = Udp()
     _lowBandwidthConnect = lowBandwidthConnect
     _lowBandwidthDax = lowBandwidthDax
     _stationName = stationName
@@ -246,26 +240,26 @@ public final class Radio: Equatable {
 //    objects.equalizers[id: Equalizer.EqType.txsc.rawValue] = Equalizer(Equalizer.EqType.txsc.rawValue)
     
     // subscribe to the publisher of TcpCommands received messages
-    _cancellableCommandData = command.receivedPublisher
+    _cancellableCommandData = _tcp.receivedPublisher
       .receive(on: _parseQ)
       .sink { [weak self] msg in
         self?.receivedMessage(msg)
       }
      
-    _cancellableCommandStatus = command.statusPublisher
+    _cancellableCommandStatus = _tcp.statusPublisher
       .sink { [weak self] status in
         self?.tcpStatus(status)
       }
     
     // subscribe to the publisher of UdpStreams data
-    _cancellableStreamData = stream.streamPublisher
+    _cancellableStreamData = _udp.streamPublisher
       .receive(on: _parseQ)
       .sink { [weak self] vita in
         self?.vitaParser(vita)
       }
     
     // subscribe to the publisher of UdpStreams status
-    _cancellableStreamStatus = stream.statusPublisher
+    _cancellableStreamStatus = _udp.statusPublisher
       .sink { [weak self] status in
         self?.udpStatus(status)
       }
@@ -633,7 +627,7 @@ public final class Radio: Equatable {
     Memory.removeAll()
     Meter.removeAll()
     
-    replyHandlers.removeAll()
+    Model.shared.replyHandlers.removeAll()
     UsbCable.removeAll()
     Xvtr.removeAll()
     

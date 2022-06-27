@@ -9,16 +9,20 @@
 import Foundation
 
 import Shared
-// import LogProxy
 
 // Slice Class implementation
 //
 //      creates a Slice instance to be used by a Client to support the
-//      rendering of a Slice. Slice structs are added, removed and
+//      rendering of a Slice. Slice classes are added, removed and
 //      updated by the incoming TCP messages. They are collected in the
-//      SlicesCollection.
+//      slices collection on the shared Model.
 
-public struct Slice: Identifiable {
+public class Slice: Equatable, Identifiable, ObservableObject {
+  // Equality
+  public static func == (lhs: Slice, rhs: Slice) -> Bool {
+    lhs.id == rhs.id
+  }
+  
   // ----------------------------------------------------------------------------
   // MARK: - Static properties
   
@@ -28,7 +32,7 @@ public struct Slice: Identifiable {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var id: SliceId
+  public let id: SliceId
   public internal(set) var initialized: Bool = false
 
   public internal(set) var autoPan: Bool = false
@@ -47,7 +51,7 @@ public struct Slice: Identifiable {
   public internal(set) var postDemodBypassEnabled: Bool = false
   public internal(set) var postDemodHigh: Int = 0
   public internal(set) var postDemodLow: Int = 0
-  public internal(set) var qskEnabled: Bool = false
+  @Published public internal(set) var qskEnabled: Bool = false
   public internal(set) var recordLength: Float = 0
   public internal(set) var rxAntList = [AntennaPort]()
   public internal(set) var sliceLetter: String?
@@ -55,16 +59,16 @@ public struct Slice: Identifiable {
   public internal(set) var wide: Bool = false
   
   public internal(set) var active: Bool = false
-  public internal(set) var agcMode: String = AgcMode.off.rawValue
+  @Published public internal(set) var agcMode: String = AgcMode.off.rawValue
   public internal(set) var agcOffLevel: Int = 0
-  public internal(set) var agcThreshold: Double = 0
-  public internal(set) var anfEnabled: Bool = false
-  public internal(set) var anfLevel: Int = 0
+  @Published public internal(set) var agcThreshold: Double = 0
+  @Published public internal(set) var anfEnabled: Bool = false
+  public internal(set) var anfLevel: Double = 0
   public internal(set) var apfEnabled: Bool = false
   public internal(set) var apfLevel: Int = 0
-  public internal(set) var audioGain: Double = 0
-  public internal(set) var audioMute: Bool = false
-  public internal(set) var audioPan: Double = 0
+  @Published public internal(set) var audioGain: Double = 0
+  @Published public internal(set) var audioMute: Bool = false
+  @Published public internal(set) var audioPan: Double = 0
   public internal(set) var daxChannel: Int = 0
   public internal(set) var dfmPreDeEmphasisEnabled: Bool = false
   public internal(set) var digitalLowerOffset: Int = 0
@@ -77,36 +81,37 @@ public struct Slice: Identifiable {
   public internal(set) var fmToneBurstEnabled: Bool = false
   public internal(set) var fmToneFreq: Float = 0
   public internal(set) var fmToneMode: String = ""
-  public internal(set) var frequency: Hz = 0
-  public internal(set) var locked: Bool = false
+  @Published public internal(set) var frequency: Hz = 0
+  @Published public internal(set) var locked: Bool = false
   public internal(set) var loopAEnabled: Bool = false
   public internal(set) var loopBEnabled: Bool = false
-  public internal(set) var mode: String = ""
-  public internal(set) var nbEnabled: Bool = false
-  public internal(set) var nbLevel: Int = 0
-  public internal(set) var nrEnabled: Bool = false
-  public internal(set) var nrLevel: Int = 0
+  @Published public internal(set) var mode: String = ""
+  @Published public internal(set) var nbEnabled: Bool = false
+  @Published public internal(set) var nbLevel: Double = 0
+  @Published public internal(set) var nrEnabled: Bool = false
+  @Published public internal(set) var nrLevel: Double = 0
   public internal(set) var playbackEnabled: Bool = false
   public internal(set) var recordEnabled: Bool = false
   public internal(set) var repeaterOffsetDirection: String = ""
-  public internal(set) var rfGain: Int = 0
-  public internal(set) var ritEnabled: Bool = false
-  public internal(set) var ritOffset: Int = 0
+  @Published public internal(set) var rfGain: Int = 0
+  @Published public internal(set) var ritEnabled: Bool = false
+  @Published public internal(set) var ritOffset: Int = 0
   public internal(set) var rttyMark: Int = 0
   public internal(set) var rttyShift: Int = 0
-  public internal(set) var rxAnt: String = ""
+  @Published public internal(set) var rxAnt: String = ""
   public internal(set) var sampleRate: Int = 0
+  public internal(set) var splitId: SliceId?
   public internal(set) var step: Int = 0
   public internal(set) var stepList: String = "1, 10, 50, 100, 500, 1000, 2000, 3000"
   public internal(set) var squelchEnabled: Bool = false
   public internal(set) var squelchLevel: Int = 0
-  public internal(set) var txAnt: String = ""
+  @Published public internal(set) var txAnt: String = ""
   public internal(set) var txEnabled: Bool = false
   public internal(set) var txOffsetFreq: Float = 0
-  public internal(set) var wnbEnabled: Bool = false
-  public internal(set) var wnbLevel: Int = 0
-  public internal(set) var xitEnabled: Bool = false
-  public internal(set) var xitOffset: Int = 0
+  @Published public internal(set) var wnbEnabled: Bool = false
+  @Published public internal(set) var wnbLevel: Double = 0
+  @Published public internal(set) var xitEnabled: Bool = false
+  @Published public internal(set) var xitOffset: Int = 0
   
   public var agcNames = AgcMode.names()
   public let daxChoices = Radio.kDaxChannels
@@ -143,7 +148,7 @@ public struct Slice: Identifiable {
     //    case fdv
   }
   
-  public enum SliceToken : String {
+  public enum SliceProperty : String {
     case active
     case agcMode                    = "agc_mode"
     case agcOffLevel                = "agc_off_level"
@@ -250,11 +255,15 @@ public struct Slice: Identifiable {
           log("Slice \(id): added", .debug, #function, #file, #line)
         }
         // pass the remaining key values to the Slice for parsing
-        Model.shared.slices[id: id]?.parseProperties( Array(properties.dropFirst(1)) )
+        Task {
+          await Model.shared.slices[id: id]?.parseProperties( Array(properties.dropFirst(1)) )
+        }
         
       } else {
         // does it exist?
         if Model.shared.slices[id: id] != nil {
+          // if the active Slice, update
+          if Model.shared.activeSlice == Model.shared.slices[id: id] { Model.shared.activeSlice = nil }
           // YES, remove it
           remove(id)
         }
@@ -262,17 +271,17 @@ public struct Slice: Identifiable {
     }
   }
   
-  public static func setProperty(radio: Radio, _ id: SliceId, property: SliceToken, value: Any) {
+  public static func setProperty(radio: Radio, id: SliceId, property: SliceProperty, value: Any) {
     switch property {
     case .active:                   sendCommand(radio, id, property, (value as! Bool).as1or0)
     case .agcMode:                  sendCommand(radio, id, property, value)
     case .agcOffLevel:              sendCommand(radio, id, property, value)
-    case .agcThreshold:             sendCommand(radio, id, property, value)
+    case .agcThreshold:             sendCommand(radio, id, property, Int(value as! Double))
     case .anfEnabled:               sendCommand(radio, id, property, (value as! Bool).as1or0)
-    case .anfLevel:                 sendCommand(radio, id, property, value)
+    case .anfLevel:                 sendCommand(radio, id, property, Int(value as! Double))
     case .apfEnabled:               sendCommand(radio, id, property, (value as! Bool).as1or0)
-    case .apfLevel:                 sendCommand(radio, id, property, value)
-    case .audioLevel:               sendCommand(radio, id, property, value)
+    case .apfLevel:                 sendCommand(radio, id, property, Int(value as! Double))
+    case .audioLevel:               sendCommand(radio, id, property, Int(value as! Double))
     case .audioMute:                sendCommand(radio, id, property, (value as! Bool).as1or0)
     case .audioPan:                 sendCommand(radio, id, property, Int(value as! Double))
     case .daxChannel:               sendCommand(radio, id, property, value)
@@ -294,9 +303,9 @@ public struct Slice: Identifiable {
     case .loopBEnabled:             sendCommand(radio, id, property, (value as! Bool).as1or0)
     case .mode:                     sendCommand(radio, id, property, value)
     case .nbEnabled:                sendCommand(radio, id, property, (value as! Bool).as1or0)
-    case .nbLevel:                  sendCommand(radio, id, property, value)
+    case .nbLevel:                  sendCommand(radio, id, property, Int(value as! Double))
     case .nrEnabled:                sendCommand(radio, id, property, (value as! Bool).as1or0)
-    case .nrLevel:                  sendCommand(radio, id, property, value)
+    case .nrLevel:                  sendCommand(radio, id, property, Int(value as! Double))
     case .playbackEnabled:          sendCommand(radio, id, property, (value as! Bool).as1or0)
     case .postDemodBypassEnabled:   sendCommand(radio, id, property, (value as! Bool).as1or0)
     case .qskEnabled:               sendCommand(radio, id, property, (value as! Bool).as1or0)
@@ -317,7 +326,7 @@ public struct Slice: Identifiable {
     case .txAnt:                    sendCommand(radio, id, property, value)
     case .txOffsetFreq:             sendCommand(radio, id, property, value)
     case .wnbEnabled:               sendCommand(radio, id, property, (value as! Bool).as1or0)
-    case .wnbLevel:                 sendCommand(radio, id, property, value)
+    case .wnbLevel:                 sendCommand(radio, id, property, Int(value as! Double))
     case .xitEnabled:               sendCommand(radio, id, property, (value as! Bool).as1or0)
     case .xitOffset:                sendCommand(radio, id, property, value)
     
@@ -327,6 +336,15 @@ public struct Slice: Identifiable {
     case .panadapterId,.postDemodHigh,.postDemodLow:            break
     case .recordTime,.rxAntList,.sliceLetter,.txAntList,.wide:  break
     case .audioGain:                                            break
+    }
+    
+    Task {
+      switch property {
+      case .nbEnabled, .nrEnabled, .anfEnabled, .wnbEnabled:
+        await Model.shared.slices[id: id]?.parseProperties( [(key: property.rawValue, value: "\((value as! Bool).as1or0)")] )
+      default:
+        await Model.shared.slices[id: id]?.parseProperties( [(key: property.rawValue, value: "\(value)")] )
+      }
     }
   }
   
@@ -348,11 +366,11 @@ public struct Slice: Identifiable {
   
   /// Parse Slice key/value pairs
   /// - Parameter properties: a KeyValuesArray
-  private mutating func parseProperties(_ properties: KeyValuesArray) {
+  @MainActor private func parseProperties(_ properties: KeyValuesArray) {
     // process each key/value pair, <key=value>
     for property in properties {
       // check for unknown Keys
-      guard let token = SliceToken(rawValue: property.key) else {
+      guard let token = SliceProperty(rawValue: property.key) else {
         // log it and ignore the Key
         log("Slice \(id) unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
@@ -365,7 +383,7 @@ public struct Slice: Identifiable {
       case .agcOffLevel:              agcOffLevel = property.value.iValue
       case .agcThreshold:             agcThreshold = property.value.dValue
       case .anfEnabled:               anfEnabled = property.value.bValue
-      case .anfLevel:                 anfLevel = property.value.iValue
+      case .anfLevel:                 anfLevel = property.value.dValue
       case .apfEnabled:               apfEnabled = property.value.bValue
       case .apfLevel:                 apfLevel = property.value.iValue
       case .audioGain:                audioGain = property.value.dValue
@@ -402,9 +420,9 @@ public struct Slice: Identifiable {
       case .mode:                     mode = property.value.uppercased()
       case .modeList:                 modeList = property.value
       case .nbEnabled:                nbEnabled = property.value.bValue
-      case .nbLevel:                  nbLevel = property.value.iValue
+      case .nbLevel:                  nbLevel = property.value.dValue
       case .nrEnabled:                nrEnabled = property.value.bValue
-      case .nrLevel:                  nrLevel = property.value.iValue
+      case .nrLevel:                  nrLevel = property.value.dValue
       case .nr2:                      nr2 = property.value.iValue
       case .owner:                    nr2 = property.value.iValue
       case .panadapterId:             panadapterId = property.value.streamId ?? 0
@@ -434,7 +452,7 @@ public struct Slice: Identifiable {
       case .txOffsetFreq:             txOffsetFreq = property.value.fValue
       case .wide:                     wide = property.value.bValue
       case .wnbEnabled:               wnbEnabled = property.value.bValue
-      case .wnbLevel:                 wnbLevel = property.value.iValue
+      case .wnbLevel:                 wnbLevel = property.value.dValue
       case .xitOffset:                xitOffset = property.value.iValue
       case .xitEnabled:               xitEnabled = property.value.bValue
         
@@ -457,7 +475,7 @@ public struct Slice: Identifiable {
   ///   - id:         the Id for the specified Slice
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ id: SliceId, _ token: SliceToken, _ value: Any) {
+  private static func sendCommand(_ radio: Radio, _ id: SliceId, _ token: SliceProperty, _ value: Any) {
     radio.send("slice set " + "\(id) " + token.rawValue + "=\(value)")
   }
   
@@ -482,7 +500,7 @@ public struct Slice: Identifiable {
   /// - Parameters:
   ///   - mode:       demod mode
   ///
-  private mutating func setupDefaultFilters(_ mode: String) {
+  private func setupDefaultFilters(_ mode: String) {
     if let modeValue = Mode(rawValue: mode) {
       switch modeValue {
         

@@ -19,7 +19,12 @@ import Vita
 //       incoming TCP messages. Panadapter objects periodically receive Panadapter
 //       data in a UDP stream. They are collected in the PanadaptersCollection.
 
-public struct Panadapter: Identifiable {
+public struct Panadapter: Equatable, Identifiable {
+  // Equality
+  public static func == (lhs: Panadapter, rhs: Panadapter) -> Bool {
+    lhs.id == rhs.id
+  }
+  
   // ----------------------------------------------------------------------------
   // MARK: - Static properties
   
@@ -28,7 +33,7 @@ public struct Panadapter: Identifiable {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var id: PanadapterId
+  public let id: PanadapterId
   public internal(set) var initialized: Bool = false
   public internal(set) var isStreaming: Bool = false
 

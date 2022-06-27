@@ -11,16 +11,24 @@ import IdentifiedCollections
 import Shared
 
 public class Model: Equatable {
+  // ----------------------------------------------------------------------------
+  // MARK: - Static Equality
   
   public static func == (lhs: Model, rhs: Model) -> Bool {
     // object equality since it is a "sharedInstance"
     lhs === rhs
   }
   
-  static let q = DispatchQueue(label: "ModelQ", attributes: [.concurrent])
+  // ----------------------------------------------------------------------------
+  // MARK: - Private Static properties
+  
+  private static let q = DispatchQueue(label: "ModelQ", attributes: [.concurrent])
   
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
+  
+  public var radio: Radio?
+  public var activeSlice: Slice?
   
   // Dynamic Models
   public var amplifiers: IdentifiedArrayOf<Amplifier> {
@@ -77,25 +85,6 @@ public class Model: Equatable {
   public var xvtrs: IdentifiedArrayOf<Xvtr> {
     get { Model.q.sync { _xvtrs } }
     set { Model.q.sync(flags: .barrier) { _xvtrs = newValue }}}
-
-  private var _amplifiers = IdentifiedArrayOf<Amplifier>()
-  private var _bandSettings = IdentifiedArrayOf<BandSetting>()
-  private var _daxIqStreams = IdentifiedArrayOf<DaxIqStream>()
-  private var _daxMicAudioStreams = IdentifiedArrayOf<DaxMicAudioStream>()
-  private var _daxRxAudioStreams = IdentifiedArrayOf<DaxRxAudioStream>()
-  private var _daxTxAudioStreams = IdentifiedArrayOf<DaxTxAudioStream>()
-  private var _equalizers = IdentifiedArrayOf<Equalizer>()
-  private var _memories = IdentifiedArrayOf<Memory>()
-  private var _meters = IdentifiedArrayOf<Meter>()
-  private var _panadapters = IdentifiedArrayOf<Panadapter>()
-  private var _profiles = IdentifiedArrayOf<Profile>()
-  private var _remoteRxAudioStreams = IdentifiedArrayOf<RemoteRxAudioStream>()
-  private var _remoteTxAudioStreams = IdentifiedArrayOf<RemoteTxAudioStream>()
-  private var _slices = IdentifiedArrayOf<Slice>()
-  private var _tnfs = IdentifiedArrayOf<Tnf>()
-  private var _usbCables = IdentifiedArrayOf<UsbCable>()
-  private var _waterfalls = IdentifiedArrayOf<Waterfall>()
-  private var _xvtrs = IdentifiedArrayOf<Xvtr>()
   
   // Static Models
   public var atu: Atu {
@@ -120,6 +109,38 @@ public class Model: Equatable {
     get { Model.q.sync { _waveform } }
     set { Model.q.sync(flags: .barrier) { _waveform = newValue }}}
 
+  // Packet collection
+  public var packets: IdentifiedArrayOf<Packet> {
+    get { Model.q.sync { _packets } }
+    set { Model.q.sync(flags: .barrier) { _packets = newValue }}}
+
+  // ReplyHandler collection
+  public var replyHandlers : [SequenceNumber: ReplyTuple] {
+    get { Model.q.sync { _replyHandlers } }
+    set { Model.q.sync(flags: .barrier) { _replyHandlers = newValue }}}
+
+
+  // Backing stores (Dynamic models)
+  private var _amplifiers = IdentifiedArrayOf<Amplifier>()
+  private var _bandSettings = IdentifiedArrayOf<BandSetting>()
+  private var _daxIqStreams = IdentifiedArrayOf<DaxIqStream>()
+  private var _daxMicAudioStreams = IdentifiedArrayOf<DaxMicAudioStream>()
+  private var _daxRxAudioStreams = IdentifiedArrayOf<DaxRxAudioStream>()
+  private var _daxTxAudioStreams = IdentifiedArrayOf<DaxTxAudioStream>()
+  private var _equalizers = IdentifiedArrayOf<Equalizer>()
+  private var _memories = IdentifiedArrayOf<Memory>()
+  private var _meters = IdentifiedArrayOf<Meter>()
+  private var _panadapters = IdentifiedArrayOf<Panadapter>()
+  private var _profiles = IdentifiedArrayOf<Profile>()
+  private var _remoteRxAudioStreams = IdentifiedArrayOf<RemoteRxAudioStream>()
+  private var _remoteTxAudioStreams = IdentifiedArrayOf<RemoteTxAudioStream>()
+  private var _slices = IdentifiedArrayOf<Slice>()
+  private var _tnfs = IdentifiedArrayOf<Tnf>()
+  private var _usbCables = IdentifiedArrayOf<UsbCable>()
+  private var _waterfalls = IdentifiedArrayOf<Waterfall>()
+  private var _xvtrs = IdentifiedArrayOf<Xvtr>()
+
+  // Backing stores (Static models)
   private var _atu = Atu()
   private var _cwx = Cwx()
   private var _gps = Gps()
@@ -130,12 +151,9 @@ public class Model: Equatable {
   private var _waveform = Waveform()
   //  public internal(set) var wanServer = WanServer()
 
-  // Packet collection
-  public var packets: IdentifiedArrayOf<Packet> {
-    get { Model.q.sync { _packets } }
-    set { Model.q.sync(flags: .barrier) { _packets = newValue }}}
-
+  // Backing stores (other)
   private var _packets = IdentifiedArrayOf<Packet>()
+  private var _replyHandlers = [SequenceNumber: ReplyTuple]()
 
   // ----------------------------------------------------------------------------
   // MARK: - Singleton
@@ -143,10 +161,12 @@ public class Model: Equatable {
   public static var shared = Model()
   private init() {}
 
+  // ----------------------------------------------------------------------------
+  // MARK: - Public methods
+  
   public func removePackets(ofType source: PacketSource) {
     for packet in packets where packet.source == source {
       packets.remove(id: packet.id)
     }
   }
-
 }

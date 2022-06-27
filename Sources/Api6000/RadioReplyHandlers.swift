@@ -19,7 +19,7 @@ extension Radio {
   ///   - replyTuple:     a Reply Tuple
   func addReplyHandler(_ seqNumber: UInt, replyTuple: ReplyTuple) {
       // add the handler
-      replyHandlers[seqNumber] = replyTuple
+    Model.shared.replyHandlers[seqNumber] = replyTuple
   }
   
   /// Parse a Reply
@@ -35,13 +35,13 @@ extension Radio {
       return
     }
     // find the command using the sequence number
-    if let replyTuple = replyHandlers[ components[0].uValue ] {
+    if let replyTuple = Model.shared.replyHandlers[ components[0].uValue ] {
       // found
       let command = replyTuple.command
       let reply = components[1]
       let otherData = components.count < 3 ? "" : components[2]
       // Remove the object from the notification list
-      replyHandlers[components[0].sequenceNumber] = nil
+      Model.shared.replyHandlers[components[0].sequenceNumber] = nil
       
       // Anything other than kNoError is an error, log it and ignore the Reply
       guard reply == kNoError else {

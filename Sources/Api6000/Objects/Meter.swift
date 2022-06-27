@@ -22,62 +22,62 @@ public struct Meter: Identifiable, Equatable {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var id: MeterId
+  public let id: MeterId
   public internal(set) var initialized: Bool = false
 
-  public internal(set) var _desc = ""
-  public internal(set) var _fps = 0
-  public internal(set) var _high: Float = 0
-  public internal(set) var _low: Float = 0
-  public internal(set) var _group = ""
-  public internal(set) var _name = ""
-  public internal(set) var _peak: Float = 0
-  public internal(set) var _source = ""
-  public internal(set) var _units = ""
-  public internal(set) var _value: Float = 0
+  public var desc: String = ""
+  public var fps: Int = 0
+  public var high: Float = 0
+  public var low: Float = 0
+  public var group: String = ""
+  public var name: String = ""
+  public var peak: Float = 0
+  public var source: String = ""
+  public var units: String = ""
+  public var value: Float = 0
+ 
+//  public internal(set) var _desc = ""
+//  public internal(set) var _fps = 0
+//  public internal(set) var _high: Float = 0
+//  public internal(set) var _low: Float = 0
+//  public internal(set) var _group = ""
+//  public internal(set) var _name = ""
+//  public internal(set) var _peak: Float = 0
+//  public internal(set) var _source = ""
+//  public internal(set) var _units = ""
+//  public internal(set) var _value: Float = 0
 
-  
-  
-  
-  
-  
-  
-  public var desc : String {
-    get { Model.q.sync { _desc }}
-    set { Model.q.sync(flags: .barrier) { _desc = newValue }}}
-  public var fps : Int {
-    get { Model.q.sync { _fps }}
-    set { Model.q.sync(flags: .barrier) { _fps = newValue }}}
-  public var high : Float {
-    get { Model.q.sync { _high }}
-    set { Model.q.sync(flags: .barrier) { _high = newValue }}}
-  public var low : Float {
-    get { Model.q.sync { _low }}
-    set { Model.q.sync(flags: .barrier) { _low = newValue }}}
-  public var group : String {
-    get { Model.q.sync { _group }}
-    set { Model.q.sync(flags: .barrier) { _group = newValue }}}
-  public var name : String {
-    get { Model.q.sync { _name }}
-    set { Model.q.sync(flags: .barrier) { _name = newValue }}}
-  public var peak : Float {
-    get { Model.q.sync { _peak }}
-    set { Model.q.sync(flags: .barrier) { _peak = newValue }}}
-  public var source : String {
-    get { Model.q.sync { _source }}
-    set { Model.q.sync(flags: .barrier) { _source = newValue }}}
-  public var units : String {
-    get { Model.q.sync { _units }}
-    set { Model.q.sync(flags: .barrier) { _units = newValue }}}
-  public var value : Float {
-    get { Model.q.sync { _value }}
-    set { Model.q.sync(flags: .barrier) { _value = newValue }}}
+//  public var desc : String {
+//    get { Model.q.sync { _desc }}
+//    set { Model.q.sync(flags: .barrier) { _desc = newValue }}}
+//  public var fps : Int {
+//    get { Model.q.sync { _fps }}
+//    set { Model.q.sync(flags: .barrier) { _fps = newValue }}}
+//  public var high : Float {
+//    get { Model.q.sync { _high }}
+//    set { Model.q.sync(flags: .barrier) { _high = newValue }}}
+//  public var low : Float {
+//    get { Model.q.sync { _low }}
+//    set { Model.q.sync(flags: .barrier) { _low = newValue }}}
+//  public var group : String {
+//    get { Model.q.sync { _group }}
+//    set { Model.q.sync(flags: .barrier) { _group = newValue }}}
+//  public var name : String {
+//    get { Model.q.sync { _name }}
+//    set { Model.q.sync(flags: .barrier) { _name = newValue }}}
+//  public var peak : Float {
+//    get { Model.q.sync { _peak }}
+//    set { Model.q.sync(flags: .barrier) { _peak = newValue }}}
+//  public var source : String {
+//    get { Model.q.sync { _source }}
+//    set { Model.q.sync(flags: .barrier) { _source = newValue }}}
+//  public var units : String {
+//    get { Model.q.sync { _units }}
+//    set { Model.q.sync(flags: .barrier) { _units = newValue }}}
+//  public var value : Float {
+//    get { Model.q.sync { _value }}
+//    set { Model.q.sync(flags: .barrier) { _value = newValue }}}
 
-  
-  
-  
-  
-  
   public static var meterPublisher = PassthroughSubject<Meter, Never>()
   public static var metersAreStreaming = false
   

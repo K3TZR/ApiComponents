@@ -153,6 +153,49 @@ final public class Tcp: NSObject {
     _socket.disconnect()
   }
 
+  /// Send a Command to the connected Radio
+  /// - Parameters:
+  ///   - cmd:            a Command string
+  ///   - diagnostic:     whether to add "D" suffix
+  /// - Returns:          the Sequence Number of the Command
+  public func send(_ cmd: String, diagnostic: Bool = false, startTime: Date = Date()) -> UInt {
+    let assignedNumber = sequenceNumber
+
+    _sendQ.sync {
+      // assemble the command
+      let command =  "C" + "\(diagnostic ? "D" : "")" + "\(self.sequenceNumber)|" + cmd + "\n"
+
+      // send it, no timeout, tag = segNum
+      self._socket.write(command.data(using: String.Encoding.utf8, allowLossyConversion: false)!, withTimeout: -1, tag: assignedNumber)
+
+      sentPublisher.send(TcpMessage(timeInterval: Date().timeIntervalSince( startTime), direction: .sent, text: String(command.dropLast())))
+      
+      print("-----> ", command)
+      
+      // atomically increment the Sequence Number
+      $sequenceNumber.mutate { $0 += 1}
+    }
+    // return the Sequence Number used by this send
+    return UInt(assignedNumber)
+  }
+
+  /// Receive a Command (text) from the connected Radio, publishes the received text
+  /// - Parameters:
+  ///   - sock:       the connected socket
+  ///   - data:       the dat received
+  ///   - tag:        the tag on the received data
+  public func socket(_ sock: GCDAsyncSocket, didRead data: Data, withTag tag: Int) {
+    // publish the received data, remove the EOL
+    if let text = String(data: data, encoding: .ascii)?.dropLast() {
+      receivedPublisher.send(TcpMessage(timeInterval: Date().timeIntervalSince( _startTime!), direction: .received, text: String(text)))
+
+      print("-----> ", text)
+
+    }
+    // trigger the next read
+    readNext()
+  }
+
   // ----------------------------------------------------------------------------
   // MARK: - Internal methods
 

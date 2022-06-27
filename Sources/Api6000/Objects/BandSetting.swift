@@ -22,55 +22,68 @@ public struct BandSetting: Identifiable {
   
   public let id: BandId
 
-  public var initialized: Bool {
-    get { Model.q.sync { _initialized } }
-    set { if newValue != _initialized { Model.q.sync(flags: .barrier) { _initialized = newValue } }}}
-  public var accTxEnabled: Bool {
-    get { Model.q.sync { _accTxEnabled } }
-    set { if newValue != _accTxEnabled { Model.q.sync(flags: .barrier) { _accTxEnabled = newValue } }}}
-  public var accTxReqEnabled: Bool {
-    get { Model.q.sync { _accTxReqEnabled } }
-    set { if newValue != _accTxReqEnabled { Model.q.sync(flags: .barrier) { _accTxReqEnabled = newValue } }}}
-  public var bandName: String {
-    get { Model.q.sync { _bandName } }
-    set { if newValue != _bandName { Model.q.sync(flags: .barrier) { _bandName = newValue } }}}
-  public var hwAlcEnabled: Bool {
-    get { Model.q.sync { _hwAlcEnabled } }
-    set { if newValue != _hwAlcEnabled { Model.q.sync(flags: .barrier) { _hwAlcEnabled = newValue } }}}
-  public var inhibit: Bool {
-    get { Model.q.sync { _inhibit } }
-    set { if newValue != _inhibit { Model.q.sync(flags: .barrier) { _inhibit = newValue } }}}
-  public var rcaTxReqEnabled: Bool {
-    get { Model.q.sync { _rcaTxReqEnabled } }
-    set { if newValue != _rcaTxReqEnabled { Model.q.sync(flags: .barrier) { _rcaTxReqEnabled = newValue } }}}
-  public var rfPower: Int {
-    get { Model.q.sync { _rfPower } }
-    set { if newValue != _rfPower { Model.q.sync(flags: .barrier) { _rfPower = newValue } }}}
-  public var tunePower: Int {
-    get { Model.q.sync { _tunePower } }
-    set { if newValue != _tunePower { Model.q.sync(flags: .barrier) { _tunePower = newValue } }}}
-  public var tx1Enabled: Bool {
-    get { Model.q.sync { _tx1Enabled } }
-    set { if newValue != _tx1Enabled { Model.q.sync(flags: .barrier) { _tx1Enabled = newValue } }}}
-  public var tx2Enabled: Bool {
-    get { Model.q.sync { _tx2Enabled } }
-    set { if newValue != _tx2Enabled { Model.q.sync(flags: .barrier) { _tx2Enabled = newValue } }}}
-  public var tx3Enabled: Bool {
-    get { Model.q.sync { _tx3Enabled } }
-    set { if newValue != _tx3Enabled { Model.q.sync(flags: .barrier) { _tx3Enabled = newValue } }}}
+  public var initialized: Bool = false
+  public var accTxEnabled: Bool = false
+  public var accTxReqEnabled: Bool = false
+  public var bandName: String = ""
+  public var hwAlcEnabled: Bool = false
+  public var inhibit: Bool = false
+  public var rcaTxReqEnabled: Bool = false
+  public var rfPower: Int = 0
+  public var tunePower: Int = 0
+  public var tx1Enabled: Bool = false
+  public var tx2Enabled: Bool = false
+  public var tx3Enabled: Bool  = false
 
-  private var _initialized = false
-  private var _accTxEnabled = false
-  private var _accTxReqEnabled = false
-  private var _bandName = ""
-  private var _hwAlcEnabled = false
-  private var _inhibit = false
-  private var _rcaTxReqEnabled = false
-  private var _rfPower = 0
-  private var _tunePower = 0
-  private var _tx1Enabled = false
-  private var _tx2Enabled = false
-  private var _tx3Enabled = false
+//  public var initialized: Bool {
+//    get { Model.q.sync { _initialized } }
+//    set { if newValue != _initialized { Model.q.sync(flags: .barrier) { _initialized = newValue } }}}
+//  public var accTxEnabled: Bool {
+//    get { Model.q.sync { _accTxEnabled } }
+//    set { if newValue != _accTxEnabled { Model.q.sync(flags: .barrier) { _accTxEnabled = newValue } }}}
+//  public var accTxReqEnabled: Bool {
+//    get { Model.q.sync { _accTxReqEnabled } }
+//    set { if newValue != _accTxReqEnabled { Model.q.sync(flags: .barrier) { _accTxReqEnabled = newValue } }}}
+//  public var bandName: String {
+//    get { Model.q.sync { _bandName } }
+//    set { if newValue != _bandName { Model.q.sync(flags: .barrier) { _bandName = newValue } }}}
+//  public var hwAlcEnabled: Bool {
+//    get { Model.q.sync { _hwAlcEnabled } }
+//    set { if newValue != _hwAlcEnabled { Model.q.sync(flags: .barrier) { _hwAlcEnabled = newValue } }}}
+//  public var inhibit: Bool {
+//    get { Model.q.sync { _inhibit } }
+//    set { if newValue != _inhibit { Model.q.sync(flags: .barrier) { _inhibit = newValue } }}}
+//  public var rcaTxReqEnabled: Bool {
+//    get { Model.q.sync { _rcaTxReqEnabled } }
+//    set { if newValue != _rcaTxReqEnabled { Model.q.sync(flags: .barrier) { _rcaTxReqEnabled = newValue } }}}
+//  public var rfPower: Int {
+//    get { Model.q.sync { _rfPower } }
+//    set { if newValue != _rfPower { Model.q.sync(flags: .barrier) { _rfPower = newValue } }}}
+//  public var tunePower: Int {
+//    get { Model.q.sync { _tunePower } }
+//    set { if newValue != _tunePower { Model.q.sync(flags: .barrier) { _tunePower = newValue } }}}
+//  public var tx1Enabled: Bool {
+//    get { Model.q.sync { _tx1Enabled } }
+//    set { if newValue != _tx1Enabled { Model.q.sync(flags: .barrier) { _tx1Enabled = newValue } }}}
+//  public var tx2Enabled: Bool {
+//    get { Model.q.sync { _tx2Enabled } }
+//    set { if newValue != _tx2Enabled { Model.q.sync(flags: .barrier) { _tx2Enabled = newValue } }}}
+//  public var tx3Enabled: Bool {
+//    get { Model.q.sync { _tx3Enabled } }
+//    set { if newValue != _tx3Enabled { Model.q.sync(flags: .barrier) { _tx3Enabled = newValue } }}}
+
+//  private var _initialized = false
+//  private var _accTxEnabled = false
+//  private var _accTxReqEnabled = false
+//  private var _bandName = ""
+//  private var _hwAlcEnabled = false
+//  private var _inhibit = false
+//  private var _rcaTxReqEnabled = false
+//  private var _rfPower = 0
+//  private var _tunePower = 0
+//  private var _tx1Enabled = false
+//  private var _tx2Enabled = false
+//  private var _tx3Enabled = false
   
   public enum BandSettingToken: String {
     case accTxEnabled       = "acc_tx_enabled"

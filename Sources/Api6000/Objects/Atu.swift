@@ -19,23 +19,28 @@ public class Atu {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
     
-  public var enabled : Bool {
-    get { Model.q.sync { _enabled } }
-    set { if newValue != enabled { Model.q.sync(flags: .barrier) { _enabled = newValue } }}}
-  public var memoriesEnabled : Bool {
-    get { Model.q.sync { _memoriesEnabled } }
-    set { if newValue != memoriesEnabled { Model.q.sync(flags: .barrier) { _memoriesEnabled = newValue } }}}
-  public var status : String {
-    get { Model.q.sync { _status } }
-    set { if newValue != status { Model.q.sync(flags: .barrier) { _status = newValue } }}}
-  public var usingMemory: Bool {
-    get { Model.q.sync { _usingMemory } }
-    set { if newValue != usingMemory { Model.q.sync(flags: .barrier) { _usingMemory = newValue } }}}
+  public var enabled: Bool = false
+  public var memoriesEnabled: Bool = false
+  public var status: String = ""
+  public var usingMemory: Bool = false
   
-  private var _memoriesEnabled = false
-  private var _status = ""       // FIXME: ?????
-  private var _enabled = false
-  private var _usingMemory = false
+//  public var enabled : Bool {
+//    get { Model.q.sync { _enabled } }
+//    set { if newValue != enabled { Model.q.sync(flags: .barrier) { _enabled = newValue } }}}
+//  public var memoriesEnabled : Bool {
+//    get { Model.q.sync { _memoriesEnabled } }
+//    set { if newValue != memoriesEnabled { Model.q.sync(flags: .barrier) { _memoriesEnabled = newValue } }}}
+//  public var status : String {
+//    get { Model.q.sync { _status } }
+//    set { if newValue != status { Model.q.sync(flags: .barrier) { _status = newValue } }}}
+//  public var usingMemory: Bool {
+//    get { Model.q.sync { _usingMemory } }
+//    set { if newValue != usingMemory { Model.q.sync(flags: .barrier) { _usingMemory = newValue } }}}
+//
+//  private var _memoriesEnabled = false
+//  private var _status = ""       // FIXME: ?????
+//  private var _enabled = false
+//  private var _usingMemory = false
     
   // ----------------------------------------------------------------------------
   // MARK: - Public types
