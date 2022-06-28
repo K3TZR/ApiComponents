@@ -47,7 +47,7 @@ extension Radio {
       guard reply == kNoError else {
         // ignore non-zero reply from "client program" command
         if !command.hasPrefix("client program ") {
-          log("Radio, reply to c\(components[0].sequenceNumber), \(command): non-zero reply \(reply), \(flexErrorString(errorCode: otherData))", .error, #function, #file, #line)
+          log("Radio, reply to c\(components[0].sequenceNumber), \(command): non-zero reply \(reply), \(flexErrorString(errorCode: reply)), \(otherData)", .error, #function, #file, #line)
         }
         return
       }

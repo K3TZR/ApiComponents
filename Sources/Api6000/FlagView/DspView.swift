@@ -20,10 +20,10 @@ struct DspView: View {
       
       HStack(spacing: 20) {
         VStack(spacing: 5) {
-          Toggle("WNB", isOn: viewStore.binding(get: \.slice.wnbEnabled, send: .wnbToggle ))
-          Toggle("NB", isOn: viewStore.binding(get: \.slice.nbEnabled, send: .nbToggle ))
-          Toggle("NR", isOn: viewStore.binding(get: \.slice.nrEnabled, send: .nrToggle ))
-          Toggle("ANF", isOn: viewStore.binding(get: \.slice.anfEnabled, send: .anfToggle ))
+          Toggle("WNB", isOn: viewStore.binding(get: \.slice.wnbEnabled, send: .toggle(\.slice.wnbEnabled, .wnbEnabled) ))
+          Toggle("NB", isOn: viewStore.binding(get: \.slice.nbEnabled, send: .toggle(\.slice.nbEnabled, .nbEnabled) ))
+          Toggle("NR", isOn: viewStore.binding(get: \.slice.nrEnabled, send: .toggle(\.slice.nrEnabled, .nrEnabled) ))
+          Toggle("ANF", isOn: viewStore.binding(get: \.slice.anfEnabled, send: .toggle(\.slice.anfEnabled, .anfEnabled) ))
         }.toggleStyle(.button)
         
         VStack(spacing: -5) {

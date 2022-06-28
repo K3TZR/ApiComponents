@@ -169,4 +169,8 @@ public class Model: Equatable {
       packets.remove(id: packet.id)
     }
   }
+  
+  public func removeSlice(id: SliceId) {
+    slices.remove(id: id)
+  }
 }

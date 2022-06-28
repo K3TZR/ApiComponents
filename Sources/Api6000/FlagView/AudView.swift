@@ -26,12 +26,13 @@ struct AudView: View {
   ]
   
   var body: some View {
+
     WithViewStore(self.store) { viewStore in
       VStack(spacing: 1) {
         HStack {
           VStack(spacing: 12) {
             Image(systemName: slice.audioMute ? "speaker.slash": "speaker").font(.system(size: 20))
-              .onTapGesture { viewStore.send(.muteToggle )}
+              .onTapGesture { viewStore.send(.toggle(\.slice.audioMute, .audioMute) )}
             Text("L")
           }.font(.system(size: 12))
 

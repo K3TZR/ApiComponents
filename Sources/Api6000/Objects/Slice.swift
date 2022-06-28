@@ -26,9 +26,23 @@ public class Slice: Equatable, Identifiable, ObservableObject {
   // ----------------------------------------------------------------------------
   // MARK: - Static properties
   
-  static let kMinOffset = -99_999      // frequency offset range
+  static let kMinOffset = -99_999 // frequency offset range
   static let kMaxOffset = 99_999
-  
+  static let filterDefaults =     // Values of filters (by mode)
+  [
+    "AM": [3_000, 4_000, 5_600, 6_000, 8_000, 10_000, 12_000, 14_000, 16_000, 20_000],
+    "SAM": [3_000, 4_000, 5_600, 6_000, 8_000, 10_000, 12_000, 14_000, 16_000, 20_000],
+    "CW": [50, 75, 100, 150, 250, 400, 800, 1_000, 1_500, 3_000],
+    "USB": [1_200, 1_400, 1_600, 1_800, 2_100, 2_400, 2_700, 2_900, 3_300, 4_000],
+    "LSB": [1_200, 1_400, 1_600, 1_800, 2_100, 2_400, 2_700, 2_900, 3_300, 4_000],
+    "FM": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "NFM": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "DFM": [3_000, 4_000, 6_000, 8_000, 10_000, 12_000, 14_000, 16_000, 18_000, 20_000],
+    "DIGU": [100, 200, 300, 400, 600, 1_000, 1_500, 2_000, 3_000, 5_000],
+    "DIGL": [100, 200, 300, 400, 600, 1_000, 1_500, 2_000, 3_000, 5_000],
+    "RTTY": [250, 300, 350, 400, 450, 500, 750, 1_000, 1_500, 3_000]
+  ]
+
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
@@ -63,13 +77,13 @@ public class Slice: Equatable, Identifiable, ObservableObject {
   public internal(set) var agcOffLevel: Int = 0
   @Published public internal(set) var agcThreshold: Double = 0
   @Published public internal(set) var anfEnabled: Bool = false
-  public internal(set) var anfLevel: Double = 0
+  @Published public internal(set) var anfLevel: Double = 0
   public internal(set) var apfEnabled: Bool = false
   public internal(set) var apfLevel: Int = 0
   @Published public internal(set) var audioGain: Double = 0
   @Published public internal(set) var audioMute: Bool = false
   @Published public internal(set) var audioPan: Double = 0
-  public internal(set) var daxChannel: Int = 0
+  @Published public internal(set) var daxChannel: Int = 0
   public internal(set) var dfmPreDeEmphasisEnabled: Bool = false
   public internal(set) var digitalLowerOffset: Int = 0
   public internal(set) var digitalUpperOffset: Int = 0
@@ -115,13 +129,14 @@ public class Slice: Equatable, Identifiable, ObservableObject {
   
   public var agcNames = AgcMode.names()
   public let daxChoices = Radio.kDaxChannels
+  public var filters = [(value: Int, label: String)]()
   
-  public enum Offset : String {
+  public enum Offset: String {
     case up
     case down
     case simplex
   }
-  public enum AgcMode : String, CaseIterable {
+  public enum AgcMode: String, CaseIterable {
     case off
     case slow
     case med
@@ -131,7 +146,7 @@ public class Slice: Equatable, Identifiable, ObservableObject {
       return [AgcMode.off.rawValue, AgcMode.slow.rawValue, AgcMode.med.rawValue, AgcMode.fast.rawValue]
     }
   }
-  public enum Mode : String, CaseIterable {
+  public enum Mode: String, CaseIterable {
     case AM
     case SAM
     case CW
@@ -148,7 +163,7 @@ public class Slice: Equatable, Identifiable, ObservableObject {
     //    case fdv
   }
   
-  public enum SliceProperty : String {
+  public enum SliceProperty: String, Equatable {
     case active
     case agcMode                    = "agc_mode"
     case agcOffLevel                = "agc_off_level"
@@ -297,7 +312,7 @@ public class Slice: Equatable, Identifiable, ObservableObject {
     case .fmToneBurstEnabled:       sendCommand(radio, id, property, (value as! Bool).as1or0)
     case .fmToneFreq:               sendCommand(radio, id, property, value)
     case .fmToneMode:               sendCommand(radio, id, property, value)
-    case .frequency:                sendTuneCommand(radio, id, (value as! Hz).hzToMhz, autoPan: Model.shared.slices[id: id]!.autoPan)
+    case .frequency:                sendTuneCommand(radio, id, value, autoPan: Model.shared.slices[id: id]!.autoPan)
     case .locked:                   sendLockCommand(radio, id, (value as! Bool) ? "lock" : "unlock")
     case .loopAEnabled:             sendCommand(radio, id, property, (value as! Bool).as1or0)
     case .loopBEnabled:             sendCommand(radio, id, property, (value as! Bool).as1or0)
@@ -340,8 +355,12 @@ public class Slice: Equatable, Identifiable, ObservableObject {
     
     Task {
       switch property {
-      case .nbEnabled, .nrEnabled, .anfEnabled, .wnbEnabled:
+      case .nbEnabled, .nrEnabled, .anfEnabled, .wnbEnabled, .audioMute, .ritEnabled, .xitEnabled:
         await Model.shared.slices[id: id]?.parseProperties( [(key: property.rawValue, value: "\((value as! Bool).as1or0)")] )
+      
+//      case .frequency
+//        await Model.shared.slices[id: id]?.parseProperties( [(key: property.rawValue, value: "\(value)")] )
+        
       default:
         await Model.shared.slices[id: id]?.parseProperties( [(key: property.rawValue, value: "\(value)")] )
       }
@@ -417,7 +436,7 @@ public class Slice: Equatable, Identifiable, ObservableObject {
       case .locked:                   locked = property.value.bValue
       case .loopAEnabled:             loopAEnabled = property.value.bValue
       case .loopBEnabled:             loopBEnabled = property.value.bValue
-      case .mode:                     mode = property.value.uppercased()
+      case .mode:                     mode = property.value.uppercased() ; filters = updateFilters(mode)
       case .modeList:                 modeList = property.value
       case .nbEnabled:                nbEnabled = property.value.bValue
       case .nbLevel:                  nbLevel = property.value.dValue
@@ -525,4 +544,24 @@ public class Slice: Equatable, Identifiable, ObservableObject {
       }
     }
   }
+  private func updateFilters(_ mode: String) -> [(value: Int, label: String)] {
+    var filterTuples = [(value: Int, label: String)]()
+    let modeFilters = Slice.filterDefaults[mode]!
+    for filter in modeFilters {
+      let tuple = (filter, filterLabel(filter))
+      filterTuples.append(tuple)
+    }
+    return filterTuples
+  }
+    
+  func filterLabel(_ value: Int) -> String {
+    var label = "-"
+    switch value {
+    case 1_000...:      label = String(format: "%2.1fk", Float(value)/1000.0)
+    case 1..<1_000:     label = String(format: "%3d", value)
+    default:            label = "-"
+    }
+    return label
+  }
+  
 }

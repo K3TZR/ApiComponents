@@ -19,49 +19,57 @@ import Shared
 public struct FlagState: Equatable {
   public var slice: Slice
   public var subViewSelection: String
+  public var canBeMinimized: Bool
   public var flagMinimized: Bool
   public var sMeterValue: CGFloat
   public var forceUpdate: Bool = false
+  public var quickModes: [String]
+  public var frequency: Hz = 0
 
   public init
   (
     slice: Slice,
     subViewSelection: String = "AUD",
+    canBeMinimized: Bool = false,
     flagMinimized: Bool = false,
-    sMeterValue: CGFloat = 5.0
+    sMeterValue: CGFloat = 5.0,
+    quickModes: [String] = ["USB", "LSB", "CW"]
   )
   {
     self.slice = slice
     self.subViewSelection = subViewSelection
+    self.canBeMinimized = canBeMinimized
     self.flagMinimized = flagMinimized
     self.sMeterValue = sMeterValue
+    self.quickModes = quickModes
   }
 }
 
 public enum FlagAction: Equatable {
   
   // UI controls
-  case toggle(WritableKeyPath<FlagState, Bool>)
+  case toggle(WritableKeyPath<FlagState, Bool>, Slice.SliceProperty?)
   case subViewSelectionChanged(String)
-  case sliceLetterClicked
   case splitClicked
   case rxAntennaSelection(String)
   case txAntennaSelection(String)
-  case nbToggle
-  case nrToggle
-  case anfToggle
-  case qskToggle
-  case wnbToggle
   case nbLevelChanged(Double)
   case nrLevelChanged(Double)
   case anfLevelChanged(Double)
   case wnbLevelChanged(Double)
-  case frequencyChanged(String)
-  case muteToggle
+  case frequencyChanged(Hz)
+  case frequencySubmitted
   case audioGainChanged(Double)
   case audioPanChanged(Double)
   case agcModeChanged(String)
   case agcThresholdChanged(Double)
+  case daxChannelChanged(Int)
+  case modeChanged(String)
+  case filterChanged(Int)
+  case ritOffsetChanged(Int)
+  case xitOffsetChanged(Int)
+  case tuningStepChanged(Int)
+  case xClicked
 }
 
 public struct FlagEnvironment {
@@ -77,9 +85,13 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
   
   switch action {
     
-  case .toggle(let keyPath):
+  case .toggle(let keyPath, let property):
     // handles all buttons with a Bool state
-    state[keyPath: keyPath].toggle()
+    switch keyPath {
+    case \.flagMinimized:         if state.canBeMinimized { state[keyPath: keyPath].toggle() }
+    case \.slice.qskEnabled:      state[keyPath: keyPath].toggle()
+    default:                      Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: property!, value: !state[keyPath: keyPath])
+    }
     return .none
     
   case .subViewSelectionChanged(let selection):
@@ -92,10 +104,10 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
     }
     return .none
     
-  case .sliceLetterClicked:
-    // FIXME: only on Panadapter not RightSide
-//    state.flagMinimized.toggle()
-    return .none
+//  case .sliceLetterClicked:
+//    // minimized allowed if not in RightSide View
+//    if state.canBeMinimized { state.flagMinimized.toggle() }
+//    return .none
     
   case .rxAntennaSelection(let antenna):
     Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .rxAnt, value: antenna)
@@ -109,31 +121,14 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
     // FIXME: ???
     return .none
 
-  case .nbToggle:
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .nbEnabled, value: !state.slice.nbEnabled )
-    return .none
-
-  case .nrToggle:
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .nrEnabled, value: !state.slice.nrEnabled)
-    return .none
-
-  case .anfToggle:
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .anfEnabled, value: !state.slice.anfEnabled)
-    return .none
-
-  case .qskToggle:
-    // FIXME: no command, modify directly
-    //    Slice.setProperty(radio: state.model.radio!, id: state.model.radio!.activeSlice!, property: .qskEnabled, value: !state.model.slices[id: state.model.radio!.activeSlice!]!.qskEnabled)
-    return .none
-
   case .frequencyChanged(let frequency):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .frequency, value: frequency)
+    state.frequency = frequency
     return .none
     
-  case .muteToggle:
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .audioMute, value: !state.slice.audioMute)
+  case .frequencySubmitted:
+    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .frequency, value: state.frequency.hzToMhz)
     return .none
-
+    
   case .audioGainChanged(let gain):
     Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .audioLevel, value: gain)
     return .none
@@ -150,10 +145,6 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
     Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .agcMode, value: mode)
     return .none
     
-  case .wnbToggle:
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .wnbEnabled, value: !state.slice.wnbEnabled)
-    return .none
-
   case .nbLevelChanged(let level):
     Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .nbLevel, value: level)
     return .none
@@ -168,6 +159,35 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
 
   case .wnbLevelChanged(let level):
     Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .wnbLevel, value: level)
+    return .none
+
+  case .daxChannelChanged(let channel):
+    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .daxChannel, value: channel)
+    return .none
+
+  case .modeChanged(let mode):
+    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .mode, value: mode)
+    return .none
+
+  case .filterChanged(let width):
+    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .filterHigh, value: width)
+    return .none
+  
+  case .ritOffsetChanged(let offset):
+    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .ritOffset, value: offset)
+    return .none
+  
+  case .xitOffsetChanged(let offset):
+    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .xitOffset, value: offset)
+    return .none
+
+  case .tuningStepChanged(let step):
+    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .step, value: step)
+    return .none
+    
+  case .xClicked:
+    // close allowed if not in RightSide View
+    if state.canBeMinimized { Model.shared.radio!.send("slice remove \(state.slice.id)") }
     return .none
   }
 }

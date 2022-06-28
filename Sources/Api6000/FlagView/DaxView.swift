@@ -6,32 +6,26 @@
 //
 
 import SwiftUI
+import ComposableArchitecture
 
 // ----------------------------------------------------------------------------
 // MARK: - View
 
 struct DaxView: View {
-  
-  @State private var selectedChannel = "none"
-  @State private var channel = [
-    "none",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8"
-  ]
-  
+  let store: Store<FlagState, FlagAction>
+  @ObservedObject var slice: Slice
+
   var body: some View {
-    HStack {
-      Picker("DAX Channel", selection: $selectedChannel) {
-        ForEach(channel, id: \.self) {
-          Text($0)
-        }
-      }.frame(width: 200)
+    
+    WithViewStore(self.store) { viewStore in
+      HStack {
+        Picker("DAX Channel", selection: viewStore.binding(get: \.slice.daxChannel, send: { .daxChannelChanged($0) } )) {
+          ForEach(Radio.kDaxChannels, id: \.self) {
+            Text($0)
+              .tag(Int($0) ?? 0)
+          }
+        }.frame(width: 200)
+      }
     }
     .frame(width: 275, height: 110)
   }
@@ -42,6 +36,12 @@ struct DaxView: View {
 
 struct DaxView_Previews: PreviewProvider {
   static var previews: some View {
-    DaxView()
+    DaxView(
+      store: Store(
+        initialState: FlagState(slice: Slice(0)),
+        reducer: flagReducer,
+        environment: FlagEnvironment()
+      ), slice: Slice(0)
+    )
   }
 }

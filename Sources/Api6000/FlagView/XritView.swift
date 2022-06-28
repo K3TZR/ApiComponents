@@ -6,54 +6,57 @@
 //
 
 import SwiftUI
+import ComposableArchitecture
 
 // ----------------------------------------------------------------------------
 // MARK: - View
 
 struct XritView: View {
-  
-  @State private var ritOffset = 0
-  @State private var xitOffset = 0
-  @State private var ritOffsetString = "0"
-  @State private var xitOffsetString = "0"
-  @State private var tuningStep = 0
-  @State private var tuningStepString = "0"
+  let store: Store<FlagState, FlagAction>
+  @ObservedObject var slice: Slice
   
   let buttonWidth: CGFloat = 25
   //    let smallButtonWidth: CGFloat = 10
   
   var body: some View {
-    VStack {
-      HStack {
-        VStack {
-          Button(action: {}) {Text("RIT").frame(width: buttonWidth)}
-          HStack(spacing: -10) {
-            TextField("offset", text: $ritOffsetString)
-//              .modifier(ClearButton(boundText: $ritOffsetString, trailing: false))
-            
-            Stepper("", value: $ritOffset, in: 0...10000)
-          }.multilineTextAlignment(.trailing)
+    
+    WithViewStore(self.store) { viewStore in
+      VStack {
+        HStack {
+          VStack {
+            Toggle("RIT", isOn: viewStore.binding(get: \.slice.ritEnabled, send: .toggle(\.slice.ritEnabled, .ritEnabled) ))
+              .toggleStyle(.button)
+
+            HStack(spacing: -10) {
+              TextField("offset", value: viewStore.binding(get: \.slice.ritOffset, send: { .ritOffsetChanged($0) } ), format: .number)
+              //              .modifier(ClearButton(boundText: $ritOffsetString, trailing: false))
+              
+              Stepper("", value: viewStore.binding(get: \.slice.ritOffset, send: { .ritOffsetChanged($0) } ), in: 0...10_000)
+            }.multilineTextAlignment(.trailing)
+          }
+          
+          VStack {
+            Toggle("XIT", isOn: viewStore.binding(get: \.slice.xitEnabled, send: .toggle(\.slice.xitEnabled, .xitEnabled) ))
+              .toggleStyle(.button)
+
+            HStack(spacing: -10)  {
+              TextField("offset", value: viewStore.binding(get: \.slice.xitOffset, send: { .xitOffsetChanged($0) } ), format: .number)
+              //              .modifier(ClearButton(boundText: $xitOffsetString, trailing: false))
+              
+              Stepper("", value: viewStore.binding(get: \.slice.xitOffset, send: { .xitOffsetChanged($0) } ), in: 0...10_000)
+            }.multilineTextAlignment(.trailing)
+          }
         }
         
-        VStack {
-          Button(action: {}) {Text("XIT").frame(width: buttonWidth)}
-          HStack(spacing: -10)  {
-            TextField("offset", text: $xitOffsetString)
-//              .modifier(ClearButton(boundText: $xitOffsetString, trailing: false))
-            
-            Stepper("", value: $xitOffset, in: 0...10000)
-          }.multilineTextAlignment(.trailing)
-        }
+        HStack(spacing: 20) {
+          Text("Tuning step")
+          HStack(spacing: -10) {
+            TextField("step", value: viewStore.binding(get: \.slice.step, send: { .tuningStepChanged($0) } ), format: .number)
+            //            .modifier(ClearButton(boundText: $tuningStepString, trailing: false))
+            Stepper("", value: viewStore.binding(get: \.slice.step, send: { .tuningStepChanged($0) } ), in: 0...100_000)
+          }
+        }.multilineTextAlignment(.trailing)
       }
-      
-      HStack(spacing: 20) {
-        Text("Tuning step")
-        HStack(spacing: -10) {
-          TextField("step", text: $tuningStepString)
-//            .modifier(ClearButton(boundText: $tuningStepString, trailing: false))
-          Stepper("", value: $tuningStep, in: 0...100000)
-        }
-      }.multilineTextAlignment(.trailing)
     }
     .frame(width: 275, height: 110)
     .padding(.horizontal)
@@ -64,7 +67,13 @@ struct XritView: View {
 // MARK: - Preview
 
 struct XritView_Previews: PreviewProvider {
-    static var previews: some View {
-      XritView()
-    }
+  static var previews: some View {
+    XritView(
+      store: Store(
+        initialState: FlagState(slice: Slice(0)),
+        reducer: flagReducer,
+        environment: FlagEnvironment()
+      ), slice: Slice(0)
+    )
+  }
 }

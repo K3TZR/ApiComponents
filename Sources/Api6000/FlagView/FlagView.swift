@@ -51,12 +51,10 @@ public struct FlagSmallView: View {
           Text("SPLIT").font(.title2)
           Text("TX").font(.title2)
           Text(viewStore.slice.sliceLetter ?? "--").font(.title2)
-            .onTapGesture { viewStore.send(.sliceLetterClicked) }
+            .onTapGesture { viewStore.send(.toggle(\.flagMinimized, nil)) }
         }
-        TextField(
-          "Frequency",
-          text: viewStore.binding(get: \.slice.frequency.hzToMhz, send: { .frequencyChanged($0) })
-        )
+        TextField("Frequency", value: viewStore.binding(get: \.slice.frequency, send: { .frequencyChanged($0) } ), formatter: NumberFormatter())
+        .onSubmit( { viewStore.send(.frequencySubmitted) } )
         .font(.title2)
         .multilineTextAlignment(.trailing)
       }
@@ -88,6 +86,8 @@ struct FlagLargeView: View {
       VStack(spacing: 2) {
         HStack(spacing: 3) {
           Image(systemName: "x.circle").frame(width: 25, height: 25)
+            .onTapGesture { viewStore.send(.xClicked) }
+
           Picker("", selection: viewStore.binding(get: \.slice.rxAnt , send: { .rxAntennaSelection($0) })) {
             ForEach(slice.rxAntList, id: \.self) {
               Text($0).font(.system(size: 10))
@@ -111,26 +111,26 @@ struct FlagLargeView: View {
           
           Text("TX").font(.title2).foregroundColor(slice.txEnabled ? .red : .gray)
           Text(slice.sliceLetter ?? "--").font(.title2)
-            .onTapGesture { viewStore.send(.sliceLetterClicked) }
+            .onTapGesture { viewStore.send(.toggle(\.flagMinimized, nil) ) }
         }
         .padding(.top, 10)
         
         HStack(spacing: 3) {
-          Image(systemName: "lock").frame(width: 25, height: 25)
-          
+          Image(systemName: viewStore.slice.locked ? "lock" : "lock.open").frame(width: 25, height: 25)
+            .onTapGesture { viewStore.send(.toggle(\.slice.locked, .locked)) }
+
           Group {
-            Toggle("NB", isOn: viewStore.binding(get: \.slice.nbEnabled, send: .nbToggle ))
-            Toggle("NR", isOn: viewStore.binding(get: \.slice.nrEnabled, send: .nrToggle ))
-            Toggle("ANF", isOn: viewStore.binding(get: \.slice.anfEnabled, send: .anfToggle ))
-            Toggle("QSK", isOn: viewStore.binding(get: \.slice.qskEnabled, send: .qskToggle ))
+            Toggle("NB", isOn: viewStore.binding(get: \.slice.nbEnabled, send: .toggle(\.slice.nbEnabled, .nbEnabled) ))
+            Toggle("NR", isOn: viewStore.binding(get: \.slice.nrEnabled, send: .toggle(\.slice.nrEnabled, .nrEnabled) ))
+            Toggle("ANF", isOn: viewStore.binding(get: \.slice.anfEnabled, send: .toggle(\.slice.anfEnabled, .anfEnabled) ))
+            Toggle("QSK", isOn: viewStore.binding(get: \.slice.qskEnabled, send: .toggle(\.slice.qskEnabled, .qskEnabled) ))
+              .disabled(slice.mode != "CW")
           }
           .font(.system(size: 10))
           .toggleStyle(.button)
           
-          TextField(
-            "Frequency",
-            text: viewStore.binding(get: \.slice.frequency.hzToMhz, send: { .frequencyChanged($0) } )
-          )
+          TextField("Frequency", value: viewStore.binding(get: \.slice.frequency, send: { .frequencyChanged($0) } ), formatter: NumberFormatter())
+          .onSubmit( { viewStore.send(.frequencySubmitted) } )
           .font(.title2)
           .multilineTextAlignment(.trailing)
         }
@@ -172,9 +172,9 @@ struct FlagButtonsView: View {
         switch viewStore.subViewSelection {
         case Buttons.aud.rawValue:    AudView(store: store, slice: slice)
         case Buttons.dsp.rawValue:    DspView(store: store, slice: slice)
-        case Buttons.mode.rawValue:   ModeView()
-        case Buttons.xrit.rawValue:   XritView()
-        case Buttons.dax.rawValue:    DaxView()
+        case Buttons.mode.rawValue:   ModeView(store: store, slice: slice)
+        case Buttons.xrit.rawValue:   XritView(store: store, slice: slice)
+        case Buttons.dax.rawValue:    DaxView(store: store, slice: slice)
         default:                      EmptyView()
         }
       }
