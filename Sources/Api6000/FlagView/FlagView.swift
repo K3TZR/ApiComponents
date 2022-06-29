@@ -53,7 +53,7 @@ public struct FlagSmallView: View {
           Text(viewStore.slice.sliceLetter ?? "--").font(.title2)
             .onTapGesture { viewStore.send(.toggle(\.flagMinimized, nil)) }
         }
-        TextField("Frequency", value: viewStore.binding(get: \.slice.frequency, send: { .frequencyChanged($0) } ), formatter: NumberFormatter())
+        TextField("Frequency", value: viewStore.binding(get: \.slice.frequency.intHzToDoubleMhz, send: { .frequencyChanged($0) } ), formatter: FrequencyFormatter())
         .onSubmit( { viewStore.send(.frequencySubmitted) } )
         .font(.title2)
         .multilineTextAlignment(.trailing)
@@ -67,7 +67,7 @@ struct FlagLargeView: View {
   let store: Store<FlagState, FlagAction>
   @ObservedObject var slice: Slice
   
-  func filterWidth(_ slice: Slice) -> String {
+  func filterLabel(_ slice: Slice) -> String {
     var formattedWidth = ""
     
     let width = slice.filterHigh - slice.filterLow
@@ -104,7 +104,7 @@ struct FlagLargeView: View {
           .labelsHidden()
           .pickerStyle(.menu)
           
-          Text( filterWidth(slice) )
+          Text( filterLabel(slice) )
           Text("SPLIT").font(.title2)
             .onTapGesture { viewStore.send(.splitClicked) }
             .foregroundColor(slice.splitId == nil ? .gray : .yellow)
@@ -129,7 +129,7 @@ struct FlagLargeView: View {
           .font(.system(size: 10))
           .toggleStyle(.button)
           
-          TextField("Frequency", value: viewStore.binding(get: \.slice.frequency, send: { .frequencyChanged($0) } ), formatter: NumberFormatter())
+          TextField("Frequency", value: viewStore.binding(get: \.slice.frequency.intHzToDoubleMhz, send: { .frequencyChanged($0) } ), formatter: FrequencyFormatter())
           .onSubmit( { viewStore.send(.frequencySubmitted) } )
           .font(.title2)
           .multilineTextAlignment(.trailing)

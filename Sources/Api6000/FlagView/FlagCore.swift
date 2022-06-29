@@ -24,7 +24,7 @@ public struct FlagState: Equatable {
   public var sMeterValue: CGFloat
   public var forceUpdate: Bool = false
   public var quickModes: [String]
-  public var frequency: Hz = 0
+  public var frequency: Double = 0
 
   public init
   (
@@ -57,7 +57,7 @@ public enum FlagAction: Equatable {
   case nrLevelChanged(Double)
   case anfLevelChanged(Double)
   case wnbLevelChanged(Double)
-  case frequencyChanged(Hz)
+  case frequencyChanged(Double)
   case frequencySubmitted
   case audioGainChanged(Double)
   case audioPanChanged(Double)
@@ -126,7 +126,7 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
     return .none
     
   case .frequencySubmitted:
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .frequency, value: state.frequency.hzToMhz)
+    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .frequency, value: state.frequency)
     return .none
     
   case .audioGainChanged(let gain):
@@ -169,8 +169,8 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
     Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .mode, value: mode)
     return .none
 
-  case .filterChanged(let width):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .filterHigh, value: width)
+  case .filterChanged(let index):
+    Slice.setFilter(radio: Model.shared.radio!, id: state.slice.id, low: state.slice.filters[index].low, high: state.slice.filters[index].high)
     return .none
   
   case .ritOffsetChanged(let offset):
@@ -192,3 +192,13 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
   }
 }
 //  .debug("-----> RIGHTSIDEVIEW")
+
+
+
+extension Int {
+    var intHzToDoubleMhz: Double { Double(self) / 1_000_000 }
+}
+
+extension Double {
+    var doubleMhzToIntHz: Int { Int( self * 1_000_000 ) }
+}

@@ -15,6 +15,19 @@ struct ModeView: View {
   let store: Store<FlagState, FlagAction>
   @ObservedObject var slice: Slice
 
+  func filterLabel(_ slice: Slice, _ index: Int) -> String {
+    var formattedWidth = ""
+    
+    let width = slice.filters[index].high - slice.filters[index].low
+    switch width {
+      
+    case 1_000...:  formattedWidth = String(format: "%2.1fk", Float(width)/1000.0)
+    case 0..<1_000: formattedWidth = String(format: "%3d", width)
+    default:        formattedWidth = "0"
+    }
+    return formattedWidth
+  }
+
   var body: some View {
     
     WithViewStore(self.store) { viewStore in
@@ -35,21 +48,21 @@ struct ModeView: View {
         }
         HStack {
           Group {
-            Button(action: { viewStore.send( .filterChanged( slice.filters[0].value) ) }) {Text(slice.filters[0].label)}
-            Button(action: { viewStore.send( .filterChanged( slice.filters[1].value) ) }) {Text(slice.filters[1].label)}
-            Button(action: { viewStore.send( .filterChanged( slice.filters[2].value) ) }) {Text(slice.filters[2].label)}
-            Button(action: { viewStore.send( .filterChanged( slice.filters[3].value) ) }) {Text(slice.filters[3].label)}
-            Button(action: { viewStore.send( .filterChanged( slice.filters[4].value) ) }) {Text(slice.filters[4].label)}
+            Button(action: { viewStore.send( .filterChanged(0)) }) {Text( filterLabel(slice, 0) )}
+            Button(action: { viewStore.send( .filterChanged(1)) }) {Text( filterLabel(slice, 1) )}
+            Button(action: { viewStore.send( .filterChanged(2)) }) {Text( filterLabel(slice, 2) )}
+            Button(action: { viewStore.send( .filterChanged(3)) }) {Text( filterLabel(slice, 3) )}
+            Button(action: { viewStore.send( .filterChanged(4)) }) {Text( filterLabel(slice, 4) )}
           }
           .frame(width: buttonWidth)
         }
         HStack {
           Group {
-            Button(action: { viewStore.send( .filterChanged( slice.filters[5].value) ) }) {Text(slice.filters[5].label)}
-            Button(action: { viewStore.send( .filterChanged( slice.filters[6].value) ) }) {Text(slice.filters[6].label)}
-            Button(action: { viewStore.send( .filterChanged( slice.filters[7].value) ) }) {Text(slice.filters[7].label)}
-            Button(action: { viewStore.send( .filterChanged( slice.filters[8].value) ) }) {Text(slice.filters[8].label)}
-            Button(action: { viewStore.send( .filterChanged( slice.filters[9].value) ) }) {Text(slice.filters[9].label)}
+            Button(action: { viewStore.send( .filterChanged(5)) }) {Text( filterLabel(slice, 5) )}
+            Button(action: { viewStore.send( .filterChanged(6)) }) {Text( filterLabel(slice, 6) )}
+            Button(action: { viewStore.send( .filterChanged(7)) }) {Text( filterLabel(slice, 7) )}
+            Button(action: { viewStore.send( .filterChanged(8)) }) {Text( filterLabel(slice, 8) )}
+            Button(action: { viewStore.send( .filterChanged(9)) }) {Text( filterLabel(slice, 9) )}
           }
           .frame(width: buttonWidth)
         }

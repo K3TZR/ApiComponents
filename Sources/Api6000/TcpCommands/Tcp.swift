@@ -189,7 +189,7 @@ final public class Tcp: NSObject {
     if let text = String(data: data, encoding: .ascii)?.dropLast() {
       receivedPublisher.send(TcpMessage(timeInterval: Date().timeIntervalSince( _startTime!), direction: .received, text: String(text)))
 
-      print("-----> ", text)
+//      print("-----> ", text)
 
     }
     // trigger the next read
