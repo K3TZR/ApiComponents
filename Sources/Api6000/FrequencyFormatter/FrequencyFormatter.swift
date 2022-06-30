@@ -37,11 +37,6 @@ class FrequencyFormatter: NumberFormatter {
         
         // allow 4 or 5 digit Khz entries
         if value >= 1_000.0 && value < 10_000.0 { value = value / 1_000 }
-        
-      
-      print("Value ----> \(value)")
-      
-      
       
         guard value <= max else { return adjustPeriods(String(max)) }
         guard value >= min else { return adjustPeriods(String(min)) }
@@ -53,12 +48,6 @@ class FrequencyFormatter: NumberFormatter {
         
         // insert the second ".", format xx.xxx.xxx
         stringValue.insert(".", at: stringValue.index(stringValue.endIndex, offsetBy: -3))
-      
-    
-    print("stringValue ----> \(stringValue)")
-    
-    
-    
 
         return stringValue
     }

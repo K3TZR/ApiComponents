@@ -136,6 +136,8 @@ struct FlagLargeView: View {
         }
         LevelIndicatorView(level: viewStore.sMeterValue, type: .sMeter)
         FlagButtonsView(store: store, slice: slice)
+        Spacer()
+        Divider().background(.blue)
       }
       .frame(width: 275)
       .padding(.horizontal)

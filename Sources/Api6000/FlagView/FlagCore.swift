@@ -104,11 +104,6 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
     }
     return .none
     
-//  case .sliceLetterClicked:
-//    // minimized allowed if not in RightSide View
-//    if state.canBeMinimized { state.flagMinimized.toggle() }
-//    return .none
-    
   case .rxAntennaSelection(let antenna):
     Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .rxAnt, value: antenna)
     return .none

@@ -170,7 +170,7 @@ final public class Tcp: NSObject {
 
       sentPublisher.send(TcpMessage(timeInterval: Date().timeIntervalSince( startTime), direction: .sent, text: String(command.dropLast())))
       
-      print("-----> ", command)
+//      print("-----> ", command)
       
       // atomically increment the Sequence Number
       $sequenceNumber.mutate { $0 += 1}
