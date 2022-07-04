@@ -13,13 +13,13 @@ import ComposableArchitecture
 
 struct DaxView: View {
   let store: Store<FlagState, FlagAction>
-  @ObservedObject var slice: Slice
+  @ObservedObject var model: Model
 
   var body: some View {
     
     WithViewStore(self.store) { viewStore in
       HStack {
-        Picker("DAX Channel", selection: viewStore.binding(get: \.slice.daxChannel, send: { .daxChannelChanged($0) } )) {
+        Picker("DAX Channel", selection: viewStore.binding(get: \.model.activeSlice!.daxChannel, send: { .daxChannelChanged($0) } )) {
           ForEach(Radio.kDaxChannels, id: \.self) {
             Text($0)
               .tag(Int($0) ?? 0)
@@ -38,10 +38,10 @@ struct DaxView_Previews: PreviewProvider {
   static var previews: some View {
     DaxView(
       store: Store(
-        initialState: FlagState(slice: Slice(0)),
+        initialState: FlagState( model: Model.shared ),
         reducer: flagReducer,
         environment: FlagEnvironment()
-      ), slice: Slice(0)
+      ), model: Model.shared
     )
   }
 }

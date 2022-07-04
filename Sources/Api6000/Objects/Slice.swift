@@ -20,7 +20,7 @@ import Shared
 public class Slice: Equatable, Identifiable, ObservableObject {
   // Equality
   public static func == (lhs: Slice, rhs: Slice) -> Bool {
-    lhs.id == rhs.id
+    lhs === rhs
   }
   
   // ----------------------------------------------------------------------------
@@ -275,13 +275,8 @@ public class Slice: Equatable, Identifiable, ObservableObject {
         }
         
       } else {
-        // does it exist?
-        if Model.shared.slices[id: id] != nil {
-          // if the active Slice, update
-          if Model.shared.activeSlice == Model.shared.slices[id: id] { Model.shared.activeSlice = nil }
-          // YES, remove it
-          remove(id)
-        }
+        // NO, remove it
+        remove(id)
       }
     }
   }
@@ -290,7 +285,7 @@ public class Slice: Equatable, Identifiable, ObservableObject {
     sendFilterCommand(radio, id, low: low, high: high)
   }
   
-  public static func setProperty(radio: Radio, id: SliceId, property: SliceProperty, value: Any) {
+  public static func setSliceProperty(radio: Radio, id: SliceId, property: SliceProperty, value: Any) {
     switch property {
     case .active:                   sendCommand(radio, id, property, (value as! Bool).as1or0)
     case .agcMode:                  sendCommand(radio, id, property, value)
@@ -398,7 +393,7 @@ public class Slice: Equatable, Identifiable, ObservableObject {
       // Known keys, in alphabetical order
       switch token {
         
-      case .active:                   active = property.value.bValue
+      case .active:                   active = property.value.bValue ; print("Active slice = \(Unmanaged.passUnretained(self).toOpaque()) @ \(frequency)") ; Model.shared.activeSlice = self
       case .agcMode:                  agcMode = property.value
       case .agcOffLevel:              agcOffLevel = property.value.iValue
       case .agcThreshold:             agcThreshold = property.value.dValue

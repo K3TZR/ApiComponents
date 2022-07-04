@@ -13,31 +13,31 @@ import ComposableArchitecture
 
 struct DspView: View {
   let store: Store<FlagState, FlagAction>
-  @ObservedObject var slice: Slice
+  @ObservedObject var model: Model
   
   var body: some View {
     WithViewStore(self.store) { viewStore in
       
       HStack(spacing: 20) {
         VStack(spacing: 5) {
-          Toggle("WNB", isOn: viewStore.binding(get: \.slice.wnbEnabled, send: .toggle(\.slice.wnbEnabled, .wnbEnabled) ))
-          Toggle("NB", isOn: viewStore.binding(get: \.slice.nbEnabled, send: .toggle(\.slice.nbEnabled, .nbEnabled) ))
-          Toggle("NR", isOn: viewStore.binding(get: \.slice.nrEnabled, send: .toggle(\.slice.nrEnabled, .nrEnabled) ))
-          Toggle("ANF", isOn: viewStore.binding(get: \.slice.anfEnabled, send: .toggle(\.slice.anfEnabled, .anfEnabled) ))
+          Toggle("WNB", isOn: viewStore.binding(get: \.model.activeSlice!.wnbEnabled, send: .toggle(\.model.activeSlice!.wnbEnabled, .wnbEnabled) ))
+          Toggle("NB", isOn: viewStore.binding(get: \.model.activeSlice!.nbEnabled, send: .toggle(\.model.activeSlice!.nbEnabled, .nbEnabled) ))
+          Toggle("NR", isOn: viewStore.binding(get: \.model.activeSlice!.nrEnabled, send: .toggle(\.model.activeSlice!.nrEnabled, .nrEnabled) ))
+          Toggle("ANF", isOn: viewStore.binding(get: \.model.activeSlice!.anfEnabled, send: .toggle(\.model.activeSlice!.anfEnabled, .anfEnabled) ))
         }.toggleStyle(.button)
         
         VStack(spacing: -5) {
-          Slider(value: viewStore.binding(get: \.slice.wnbLevel, send: { .wnbLevelChanged($0) }), in: 0...100, step: 1.0)
-          Slider(value: viewStore.binding(get: \.slice.nbLevel, send: { .nbLevelChanged($0) }), in: 0...100, step: 1.0)
-          Slider(value: viewStore.binding(get: \.slice.nrLevel, send: { .nrLevelChanged($0) }), in: 0...100, step: 1.0)
-          Slider(value: viewStore.binding(get: \.slice.anfLevel, send: { .anfLevelChanged($0) }), in: 0...100, step: 1.0)
+          Slider(value: viewStore.binding(get: \.model.activeSlice!.wnbLevel, send: { .wnbLevelChanged($0) }), in: 0...100, step: 1.0)
+          Slider(value: viewStore.binding(get: \.model.activeSlice!.nbLevel, send: { .nbLevelChanged($0) }), in: 0...100, step: 1.0)
+          Slider(value: viewStore.binding(get: \.model.activeSlice!.nrLevel, send: { .nrLevelChanged($0) }), in: 0...100, step: 1.0)
+          Slider(value: viewStore.binding(get: \.model.activeSlice!.anfLevel, send: { .anfLevelChanged($0) }), in: 0...100, step: 1.0)
         }
         
         VStack(spacing: 12) {
-          Text(String(format: "%2.0f", viewStore.slice.wnbLevel)).frame(width: 30)
-          Text(String(format: "%2.0f", viewStore.slice.nbLevel)).frame(width: 30)
-          Text(String(format: "%2.0f", viewStore.slice.nrLevel)).frame(width: 30)
-          Text(String(format: "%2.0f", viewStore.slice.anfLevel)).frame(width: 30)
+          Text(String(format: "%2.0f", model.activeSlice!.wnbLevel)).frame(width: 30)
+          Text(String(format: "%2.0f", model.activeSlice!.nbLevel)).frame(width: 30)
+          Text(String(format: "%2.0f", model.activeSlice!.nrLevel)).frame(width: 30)
+          Text(String(format: "%2.0f", model.activeSlice!.anfLevel)).frame(width: 30)
         }
       }
     }
@@ -53,10 +53,10 @@ struct DspView_Previews: PreviewProvider {
   static var previews: some View {
     DspView(
       store: Store(
-        initialState: FlagState(slice: Slice(0)),
+        initialState: FlagState( model: Model.shared  ),
         reducer: flagReducer,
         environment: FlagEnvironment()
-      ), slice: Slice(0)
+      ), model: Model.shared
     )
   }
 }

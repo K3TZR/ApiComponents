@@ -10,7 +10,7 @@ import IdentifiedCollections
 
 import Shared
 
-public class Model: Equatable {
+public class Model: Equatable, ObservableObject {
   // ----------------------------------------------------------------------------
   // MARK: - Static Equality
   
@@ -27,9 +27,10 @@ public class Model: Equatable {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public var radio: Radio?
-  public var activeSlice: Slice?
-  
+  @Published public var radio: Radio?
+  @Published public var activeSlice: Slice?
+  @Published public var activePanadapter: Panadapter?
+
   // Dynamic Models
   public var amplifiers: IdentifiedArrayOf<Amplifier> {
     get { Model.q.sync { _amplifiers } }

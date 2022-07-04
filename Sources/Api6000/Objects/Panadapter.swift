@@ -19,7 +19,7 @@ import Vita
 //       incoming TCP messages. Panadapter objects periodically receive Panadapter
 //       data in a UDP stream. They are collected in the PanadaptersCollection.
 
-public struct Panadapter: Equatable, Identifiable {
+public class Panadapter: Equatable, Identifiable, ObservableObject {
   // Equality
   public static func == (lhs: Panadapter, rhs: Panadapter) -> Bool {
     lhs.id == rhs.id
@@ -56,7 +56,7 @@ public struct Panadapter: Equatable, Identifiable {
   public internal(set) var xvtrLabel = ""
   
   public var average: Int = 0
-  public var band: String = ""
+  @Published public var band: String = ""
   // FIXME: Where does autoCenter come from?
   public var bandwidth: Hz = 0
   public var bandZoomEnabled: Bool  = false
@@ -194,7 +194,9 @@ public struct Panadapter: Equatable, Identifiable {
           log("Panadapter \(id.hex): added", .debug, #function, #file, #line)
         }
         // pass the remaining key values for parsing
-        Model.shared.panadapters[id: id]?.parseProperties( Array(properties.dropFirst(2)) )
+        Task {
+          await Model.shared.panadapters[id: id]?.parseProperties( Array(properties.dropFirst(2)) )
+        }
         
       } else {
         // NO, does it exist?
@@ -206,7 +208,7 @@ public struct Panadapter: Equatable, Identifiable {
     }
   }
 
-  public static func setProperty(radio: Radio, _ id: PanadapterId, _ property: PanadapterToken, _ value: Any) {
+  public static func setPanadapterProperty(radio: Radio, id: PanadapterId, property: PanadapterToken, value: Any) {
     switch property {
     case .antList:                sendCommand( radio, id, .antList, value)
     case .average:                sendCommand( radio, id, .average, value)
@@ -241,42 +243,16 @@ public struct Panadapter: Equatable, Identifiable {
     case .available, .capacity, .daxIqRate:                         break // ignored by Panadapter
     case .n1mmSpectrumEnable, .n1mmAddress, .n1mmPort, .n1mmRadio:  break // not sent in status messages
     }
-  }
 
-//  public static func getProperty( _ id: PanadapterId, _ property: PanadapterToken) -> Any? {
-//    switch property {
-//    case .antList:                return Model.shared.panadapters[id: id]?.antList as Any
-//    case .average:                return Model.shared.panadapters[id: id]?.average as Any
-//    case .band:                   return Model.shared.panadapters[id: id]?.band as Any
-//    case .bandwidth:              return Model.shared.panadapters[id: id]?.bandwidth as Any
-//    case .bandZoomEnabled:        return Model.shared.panadapters[id: id]?.bandZoomEnabled as Any
-//    case .center:                 return Model.shared.panadapters[id: id]?.center as Any
-//    case .clientHandle:           return Model.shared.panadapters[id: id]?.clientHandle as Any
-//    case .daxIq:                  return Model.shared.panadapters[id: id]?.daxIqChannel as Any
-//    case .daxIqChannel:           return Model.shared.panadapters[id: id]?.daxIqChannel as Any
-//    case .fps:                    return Model.shared.panadapters[id: id]?.fps as Any
-//    case .loopAEnabled:           return Model.shared.panadapters[id: id]?.loopAEnabled as Any
-//    case .loopBEnabled:           return Model.shared.panadapters[id: id]?.loopBEnabled as Any
-//    case .maxBw:                  return Model.shared.panadapters[id: id]?.maxBw as Any
-//    case .maxDbm:                 return Model.shared.panadapters[id: id]?.maxDbm as Any
-//    case .minBw:                  return Model.shared.panadapters[id: id]?.minBw as Any
-//    case .minDbm:                 return Model.shared.panadapters[id: id]?.minDbm as Any
-//    case .preamp:                 return Model.shared.panadapters[id: id]?.preamp as Any
-//    case .rfGain:                 return Model.shared.panadapters[id: id]?.rfGain as Any
-//    case .rxAnt:                  return Model.shared.panadapters[id: id]?.rxAnt as Any
-//    case .segmentZoomEnabled:     return Model.shared.panadapters[id: id]?.segmentZoomEnabled as Any
-//    case .waterfallId:            return Model.shared.panadapters[id: id]?.waterfallId as Any
-//    case .wide:                   return Model.shared.panadapters[id: id]?.wide as Any
-//    case .weightedAverageEnabled: return Model.shared.panadapters[id: id]?.weightedAverageEnabled as Any
-//    case .wnbEnabled:             return Model.shared.panadapters[id: id]?.wnbEnabled as Any
-//    case .wnbLevel:               return Model.shared.panadapters[id: id]?.wnbLevel as Any
-//    case .wnbUpdating:            return Model.shared.panadapters[id: id]?.wnbUpdating as Any
-//    case .xvtrLabel:              return Model.shared.panadapters[id: id]?.xvtrLabel as Any
-//
-//    case .available, .capacity, .daxIqRate, .xPixels, .yPixels:     return nil // ignored by Panadapter
-//    case .n1mmSpectrumEnable, .n1mmAddress, .n1mmPort, .n1mmRadio:  return nil // not sent in status messages
-//    }
-//  }
+    Task {
+      switch property {
+//      case .band:
+//        await Model.shared.panadapters[id: id]?.parseProperties( [(key: property.rawValue, value: "\((value as! Bool).as1or0)")] )
+      
+      default:
+        await Model.shared.panadapters[id: id]?.parseProperties( [(key: property.rawValue, value: "\(value)")] )
+      }
+    }  }
 
   /// Remove the specified Panadapter
   /// - Parameter id:     a PanadapterId
@@ -297,7 +273,7 @@ public struct Panadapter: Equatable, Identifiable {
   
   /// Parse Panadapter key/value pairs
   /// - Parameter properties:       a KeyValuesArray
-  private mutating func parseProperties(_ properties: KeyValuesArray) {
+  @MainActor private func parseProperties(_ properties: KeyValuesArray) {
     // process each key/value pair, <key=value>
     for property in properties {
       // check for unknown Keys
@@ -404,7 +380,7 @@ public struct Panadapter: Equatable, Identifiable {
   ///
   /// - Parameters:
   ///   - vita:        a Vita struct
-  public mutating func vitaProcessor(_ vita: Vita, _ testMode: Bool = false) {
+  public func vitaProcessor(_ vita: Vita, _ testMode: Bool = false) {
     if Model.shared.panadapters[id: vita.streamId]!.isStreaming == false {
       Model.shared.panadapters[id: vita.streamId]!.isStreaming = true
       // log the start of the stream

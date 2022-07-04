@@ -17,18 +17,20 @@ import Shared
 // MARK: - State, Actions & Environment
 
 public struct FlagState: Equatable {
-  public var slice: Slice
+  public var model: Model
+//  public var activeSlice: Slice?
   public var subViewSelection: String
   public var canBeMinimized: Bool
   public var flagMinimized: Bool
   public var sMeterValue: CGFloat
   public var forceUpdate: Bool = false
   public var quickModes: [String]
-  public var frequency: Double = 0
+//  public var frequency: Double = 0
 
   public init
   (
-    slice: Slice,
+    model: Model,
+//    activeSlice: Slice? = nil,
     subViewSelection: String = "AUD",
     canBeMinimized: Bool = false,
     flagMinimized: Bool = false,
@@ -36,7 +38,8 @@ public struct FlagState: Equatable {
     quickModes: [String] = ["USB", "LSB", "CW"]
   )
   {
-    self.slice = slice
+    self.model = model
+//    self.activeSlice = activeSlice
     self.subViewSelection = subViewSelection
     self.canBeMinimized = canBeMinimized
     self.flagMinimized = flagMinimized
@@ -70,6 +73,11 @@ public enum FlagAction: Equatable {
   case xitOffsetChanged(Int)
   case tuningStepChanged(Int)
   case xClicked
+  case toggleLock
+  case toggleNb
+  case toggleNr
+  case toggleAnf
+  case toggleQsk
 }
 
 public struct FlagEnvironment {
@@ -89,8 +97,8 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
     // handles all buttons with a Bool state
     switch keyPath {
     case \.flagMinimized:         if state.canBeMinimized { state[keyPath: keyPath].toggle() }
-    case \.slice.qskEnabled:      state[keyPath: keyPath].toggle()
-    default:                      Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: property!, value: !state[keyPath: keyPath])
+    case \.model.activeSlice!.qskEnabled:      state[keyPath: keyPath].toggle()
+    default:                      Slice.setSliceProperty(radio: state.model.radio!, id: state.model.activeSlice!.id, property: property!, value: !state[keyPath: keyPath])
     }
     return .none
     
@@ -105,11 +113,15 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
     return .none
     
   case .rxAntennaSelection(let antenna):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .rxAnt, value: antenna)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .rxAnt, value: antenna)
+    }
     return .none
-
+    
   case .txAntennaSelection(let antenna):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .txAnt, value: antenna)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .txAnt, value: antenna)
+    }
     return .none
     
   case .splitClicked:
@@ -117,72 +129,133 @@ public let flagReducer = Reducer<FlagState, FlagAction, FlagEnvironment>
     return .none
 
   case .frequencyChanged(let frequency):
-    state.frequency = frequency
+//    state.frequency = frequency
     return .none
     
   case .frequencySubmitted:
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .frequency, value: state.frequency)
+//    if let slice = state.model.activeSlice {
+//      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .frequency, value: state.frequency)
+//    }
     return .none
     
   case .audioGainChanged(let gain):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .audioLevel, value: gain)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .audioLevel, value: gain)
+    }
     return .none
     
   case .audioPanChanged( let pan):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .audioPan, value: pan)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .audioPan, value: pan)
+    }
     return .none
     
   case .agcThresholdChanged(let threshold):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .agcThreshold, value: threshold)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .agcThreshold, value: threshold)
+    }
     return .none
     
   case .agcModeChanged(let mode):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .agcMode, value: mode)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .agcMode, value: mode)
+    }
     return .none
     
   case .nbLevelChanged(let level):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .nbLevel, value: level)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .nbLevel, value: level)
+    }
     return .none
 
   case .nrLevelChanged(let level):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .nrLevel, value: level)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .nrLevel, value: level)
+    }
     return .none
-
+    
   case .anfLevelChanged(let level):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .anfLevel, value: level)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .anfLevel, value: level)
+    }
     return .none
-
+    
   case .wnbLevelChanged(let level):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .wnbLevel, value: level)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .wnbLevel, value: level)
+    }
     return .none
-
+    
   case .daxChannelChanged(let channel):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .daxChannel, value: channel)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .daxChannel, value: channel)
+    }
     return .none
-
+    
   case .modeChanged(let mode):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .mode, value: mode)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .mode, value: mode)
+    }
     return .none
 
   case .filterChanged(let index):
-    Slice.setFilter(radio: Model.shared.radio!, id: state.slice.id, low: state.slice.filters[index].low, high: state.slice.filters[index].high)
+    if let slice = state.model.activeSlice {
+      Slice.setFilter(radio: Model.shared.radio!, id: slice.id, low: slice.filters[index].low, high: slice.filters[index].high)
+    }
     return .none
-  
+    
   case .ritOffsetChanged(let offset):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .ritOffset, value: offset)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .ritOffset, value: offset)}
     return .none
-  
+    
   case .xitOffsetChanged(let offset):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .xitOffset, value: offset)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .xitOffset, value: offset)
+    }
     return .none
-
+    
   case .tuningStepChanged(let step):
-    Slice.setProperty(radio: Model.shared.radio!, id: state.slice.id, property: .step, value: step)
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .step, value: step)
+    }
     return .none
     
   case .xClicked:
     // close allowed if not in RightSide View
-    if state.canBeMinimized { Model.shared.radio!.send("slice remove \(state.slice.id)") }
+    if let slice = state.model.activeSlice {
+      if state.canBeMinimized { Model.shared.radio!.send("slice remove \(slice.id)") }
+    }
+    return .none
+    
+  case .toggleLock:
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .locked, value: !slice.locked)
+    }
+    return .none
+
+  case .toggleNb:
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .nbEnabled, value: !slice.nbEnabled)
+    }
+    return .none
+
+  case .toggleNr:
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .nrEnabled, value: !slice.nrEnabled)
+    }
+    return .none
+
+  case .toggleAnf:
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .anfEnabled, value: !slice.anfEnabled)
+    }
+    return .none
+
+  case .toggleQsk:
+    if let slice = state.model.activeSlice {
+      Slice.setSliceProperty(radio: Model.shared.radio!, id: slice.id, property: .qskEnabled, value: !slice.qskEnabled)
+    }
     return .none
   }
 }

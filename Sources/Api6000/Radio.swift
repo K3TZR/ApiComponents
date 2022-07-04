@@ -404,7 +404,7 @@ public final class Radio: Equatable {
       Meter.vitaProcessor(vitaPacket)
       
     case .panadapter:
-      if var object = Model.shared.panadapters[id: vitaPacket.streamId]
+      if let object = Model.shared.panadapters[id: vitaPacket.streamId]
       { object.vitaProcessor(vitaPacket, _testerModeEnabled) }
       
     case .waterfall:

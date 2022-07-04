@@ -13,7 +13,7 @@ import ComposableArchitecture
 
 struct XritView: View {
   let store: Store<FlagState, FlagAction>
-  @ObservedObject var slice: Slice
+  @ObservedObject var model: Model
   
   let buttonWidth: CGFloat = 25
   //    let smallButtonWidth: CGFloat = 10
@@ -24,26 +24,26 @@ struct XritView: View {
       VStack {
         HStack {
           VStack {
-            Toggle("RIT", isOn: viewStore.binding(get: \.slice.ritEnabled, send: .toggle(\.slice.ritEnabled, .ritEnabled) ))
+            Toggle("RIT", isOn: viewStore.binding(get: \.model.activeSlice!.ritEnabled, send: .toggle(\.model.activeSlice!.ritEnabled, .ritEnabled) ))
               .toggleStyle(.button)
 
             HStack(spacing: -10) {
-              TextField("offset", value: viewStore.binding(get: \.slice.ritOffset, send: { .ritOffsetChanged($0) } ), format: .number)
+              TextField("offset", value: viewStore.binding(get: \.model.activeSlice!.ritOffset, send: { .ritOffsetChanged($0) } ), format: .number)
               //              .modifier(ClearButton(boundText: $ritOffsetString, trailing: false))
               
-              Stepper("", value: viewStore.binding(get: \.slice.ritOffset, send: { .ritOffsetChanged($0) } ), in: 0...10_000)
+              Stepper("", value: viewStore.binding(get: \.model.activeSlice!.ritOffset, send: { .ritOffsetChanged($0) } ), in: 0...10_000)
             }.multilineTextAlignment(.trailing)
           }
           
           VStack {
-            Toggle("XIT", isOn: viewStore.binding(get: \.slice.xitEnabled, send: .toggle(\.slice.xitEnabled, .xitEnabled) ))
+            Toggle("XIT", isOn: viewStore.binding(get: \.model.activeSlice!.xitEnabled, send: .toggle(\.model.activeSlice!.xitEnabled, .xitEnabled) ))
               .toggleStyle(.button)
 
             HStack(spacing: -10)  {
-              TextField("offset", value: viewStore.binding(get: \.slice.xitOffset, send: { .xitOffsetChanged($0) } ), format: .number)
+              TextField("offset", value: viewStore.binding(get: \.model.activeSlice!.xitOffset, send: { .xitOffsetChanged($0) } ), format: .number)
               //              .modifier(ClearButton(boundText: $xitOffsetString, trailing: false))
               
-              Stepper("", value: viewStore.binding(get: \.slice.xitOffset, send: { .xitOffsetChanged($0) } ), in: 0...10_000)
+              Stepper("", value: viewStore.binding(get: \.model.activeSlice!.xitOffset, send: { .xitOffsetChanged($0) } ), in: 0...10_000)
             }.multilineTextAlignment(.trailing)
           }
         }
@@ -51,9 +51,9 @@ struct XritView: View {
         HStack(spacing: 20) {
           Text("Tuning step")
           HStack(spacing: -10) {
-            TextField("step", value: viewStore.binding(get: \.slice.step, send: { .tuningStepChanged($0) } ), format: .number)
+            TextField("step", value: viewStore.binding(get: \.model.activeSlice!.step, send: { .tuningStepChanged($0) } ), format: .number)
             //            .modifier(ClearButton(boundText: $tuningStepString, trailing: false))
-            Stepper("", value: viewStore.binding(get: \.slice.step, send: { .tuningStepChanged($0) } ), in: 0...100_000)
+            Stepper("", value: viewStore.binding(get: \.model.activeSlice!.step, send: { .tuningStepChanged($0) } ), in: 0...100_000)
           }
         }.multilineTextAlignment(.trailing)
       }
@@ -70,10 +70,10 @@ struct XritView_Previews: PreviewProvider {
   static var previews: some View {
     XritView(
       store: Store(
-        initialState: FlagState(slice: Slice(0)),
+        initialState: FlagState(  model: Model.shared  ),
         reducer: flagReducer,
         environment: FlagEnvironment()
-      ), slice: Slice(0)
+      ), model: Model.shared
     )
   }
 }
