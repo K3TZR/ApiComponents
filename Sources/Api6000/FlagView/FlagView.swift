@@ -16,24 +16,29 @@ import Shared
 // MARK: - Views
 
 public struct FlagView: View {
-//  @ObservedObject var slice: Slice
+  let store: Store<FlagState, FlagAction>
   
+  public init(store: Store<FlagState, FlagAction>) {
+    self.store = store
+  }
+
   public var body: some View {
     
-//    let _ = Self._printChanges()
+    let _ = Self._printChanges()
     
-    Text("Flag goes here")
-//    VStack(spacing: 2) {
-//      HStack(spacing: 3) {
-//        Text("SPLIT").font(.title2)
-//        Text("TX").font(.title2)
-//        Text(slice.sliceLetter ?? "--").font(.title2)
-//      }
-//      TextField("Frequency", value: $slice.frequency, formatter: FrequencyFormatter())
-      
-//        .font(.title2)
-//        .multilineTextAlignment(.trailing)
-//    }
+    WithViewStore(self.store) { viewStore in
+      VStack(spacing: 2) {
+        HStack(spacing: 3) {
+          Text("SPLIT").font(.title2)
+          Text("TX").font(.title2)
+          Text(viewStore.model.activeSlice!.sliceLetter ?? "--").font(.title2)
+        }
+        TextField("Frequency", value: viewStore.binding(get: \.model.activeSlice!.frequency.intHzToDoubleMhz, send: { .frequencyChanged($0) }), formatter: FrequencyFormatter())
+        
+          .font(.title2)
+          .multilineTextAlignment(.trailing)
+      }
+    }
   }
 }
 

@@ -16,22 +16,22 @@ import Shared
 //      updated by the incoming TCP messages. They are collected in the
 //      EqualizerCollection.
 
-public struct Equalizer: Identifiable {
+public class Equalizer: Identifiable, ObservableObject {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
 
   public internal(set) var id: EqualizerId
   public internal(set) var initialized = false
 
-  public var eqEnabled = false
-  public var level63Hz = 0
-  public var level125Hz = 0
-  public var level250Hz = 0
-  public var level500Hz = 0
-  public var level1000Hz = 0
-  public var level2000Hz = 0
-  public var level4000Hz = 0
-  public var level8000Hz = 0
+  @Published public var eqEnabled = false
+  @Published public var level63Hz: Double = 0
+  @Published public var level125Hz: Double = 0
+  @Published public var level250Hz: Double = 0
+  @Published public var level500Hz: Double = 0
+  @Published public var level1000Hz: Double = 0
+  @Published public var level2000Hz: Double = 0
+  @Published public var level4000Hz: Double = 0
+  @Published public var level8000Hz: Double = 0
 
   public enum EqualizerToken: String {
     case level63Hz   = "63hz"
@@ -75,7 +75,9 @@ public struct Equalizer: Identifiable {
         log("Equalizer \(id): added", .debug, #function, #file, #line)
       }
       // pass the remaining key values to the Equalizer for parsing
-      Model.shared.equalizers[id: id]?.parseProperties( Array(properties.dropFirst(1)) )
+      Task {
+        await Model.shared.equalizers[id: id]?.parseProperties( Array(properties.dropFirst(1)) )
+      }
     
     } else {
       if Model.shared.equalizers[id: id] != nil {
@@ -84,24 +86,20 @@ public struct Equalizer: Identifiable {
     }
   }
     
-  public static func setProperty(radio: Radio, _ id: EqualizerId, property: EqualizerToken, value: Any) {
-    // FIXME: add commands
+  public static func setEqualizerProperty(radio: Radio, id: EqualizerId, property: EqualizerToken, value: Any) {
+    switch property {
+      
+    case .level63Hz:    sendCommand(radio, id, "63Hz", value)
+    case .level125Hz:   sendCommand(radio, id, "125Hz", value)
+    case .level250Hz:   sendCommand(radio, id, "250Hz", value)
+    case .level500Hz:   sendCommand(radio, id, "500Hz", value)
+    case .level1000Hz:  sendCommand(radio, id, "1000Hz", value)
+    case .level2000Hz:  sendCommand(radio, id, "2000Hz", value)
+    case .level4000Hz:  sendCommand(radio, id, "4000Hz", value)
+    case .level8000Hz:  sendCommand(radio, id, "8000Hz", value)
+    case .enabled:      sendCommand(radio, id, .enabled, value)
+    }
   }
-
-//  public static func getProperty( _ id: EqualizerId, property: EqualizerToken) -> Any? {
-//    switch property {
-//      
-//    case .level63Hz:    return Model.shared.equalizers[id: id]!.level63Hz as Any
-//    case .level125Hz:   return Model.shared.equalizers[id: id]!.level125Hz as Any
-//    case .level250Hz:   return Model.shared.equalizers[id: id]!.level250Hz as Any
-//    case .level500Hz:   return Model.shared.equalizers[id: id]!.level500Hz as Any
-//    case .level1000Hz:  return Model.shared.equalizers[id: id]!.level1000Hz as Any
-//    case .level2000Hz:  return Model.shared.equalizers[id: id]!.level2000Hz as Any
-//    case .level4000Hz:  return Model.shared.equalizers[id: id]!.level4000Hz as Any
-//    case .level8000Hz:  return Model.shared.equalizers[id: id]!.level8000Hz as Any
-//    case .enabled:      return Model.shared.equalizers[id: id]!.eqEnabled as Any
-//    }
-//  }
 
   /// Remove the specified Equalizer
   /// - Parameter id:     an EqualizerId
@@ -122,7 +120,7 @@ public struct Equalizer: Identifiable {
   
   /// Parse Equalizer key/value pairs
   /// - Parameter properties:       a KeyValuesArray
-  private mutating func parseProperties(_ properties: KeyValuesArray) {
+  @MainActor private func parseProperties(_ properties: KeyValuesArray) {
     // process each key/value pair, <key=value>
     for property in properties {
       // check for unknown Keys
@@ -133,15 +131,15 @@ public struct Equalizer: Identifiable {
       }
       // known keys
       switch token {
-        
-      case .level63Hz:    level63Hz = property.value.iValue
-      case .level125Hz:   level125Hz = property.value.iValue
-      case .level250Hz:   level250Hz = property.value.iValue
-      case .level500Hz:   level500Hz = property.value.iValue
-      case .level1000Hz:  level1000Hz = property.value.iValue
-      case .level2000Hz:  level2000Hz = property.value.iValue
-      case .level4000Hz:  level4000Hz = property.value.iValue
-      case .level8000Hz:  level8000Hz = property.value.iValue
+
+      case .level63Hz:    level63Hz = property.value.dValue
+      case .level125Hz:   level125Hz = property.value.dValue
+      case .level250Hz:   level250Hz = property.value.dValue
+      case .level500Hz:   level500Hz = property.value.dValue
+      case .level1000Hz:  level1000Hz = property.value.dValue
+      case .level2000Hz:  level2000Hz = property.value.dValue
+      case .level4000Hz:  level4000Hz = property.value.dValue
+      case .level8000Hz:  level8000Hz = property.value.dValue
       case .enabled:      eqEnabled = property.value.bValue
       }
       // is it initialized?
@@ -160,6 +158,18 @@ public struct Equalizer: Identifiable {
   ///   - token:      the parse token
   ///   - value:      the new value
   private static func sendCommand(_ radio: Radio, _ id: EqualizerId, _ token: EqualizerToken, _ value: Any) {
-    // FIXME: add commands
+    radio.send("eq " + id + " " + token.rawValue + "=\(value)")
+  }
+
+  /// Send a command to Set a Equalizer property
+  /// - Parameters:
+  ///   - radio:      a Radio instance
+  ///   - id:         the Id for the specified Equalizer
+  ///   - token:      a String value
+  ///   - value:      the new value
+  private static func sendCommand(_ radio: Radio, _ id: EqualizerId, _ token: String, _ value: Any) {
+    radio.send("eq " + id + " " + token + "=\(value)")
+
+    print("-----> ", "eq " + id + " " + token + "=\(value)")
   }
 }

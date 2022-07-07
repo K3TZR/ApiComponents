@@ -16,7 +16,6 @@ import Shared
 
 struct AudView: View {
   let store: Store<FlagState, FlagAction>
-  @ObservedObject var model: Model
   
   @State private var choices = [
     "off",
@@ -31,7 +30,7 @@ struct AudView: View {
       VStack(spacing: 1) {
         HStack {
           VStack(spacing: 12) {
-            Image(systemName: model.activeSlice!.audioMute ? "speaker.slash": "speaker").font(.system(size: 20))
+            Image(systemName: viewStore.model.activeSlice!.audioMute ? "speaker.slash": "speaker").font(.system(size: 20))
               .onTapGesture { viewStore.send(.toggle(\.model.activeSlice!.audioMute, .audioMute) )}
             Text("L")
           }.font(.system(size: 12))
@@ -42,7 +41,7 @@ struct AudView: View {
 
           }
           VStack(spacing: 12) {
-            Text(String(format: "%2.0f", model.activeSlice!.audioGain)).frame(width: 30)
+            Text(String(format: "%2.0f", viewStore.model.activeSlice!.audioGain)).frame(width: 30)
             Text("R")
           }.font(.system(size: 12))
         }
@@ -54,7 +53,7 @@ struct AudView: View {
             }
           }.frame(width: 100)
           Slider(value: viewStore.binding(get: \.model.activeSlice!.agcThreshold, send: { .agcThresholdChanged($0) } ), in: 0...100, step: 1.0)
-          Text(String(format: "%2.0f", model.activeSlice!.agcThreshold)).frame(width: 30)
+          Text(String(format: "%2.0f", viewStore.model.activeSlice!.agcThreshold)).frame(width: 30)
         }.font(.system(size: 12))
       }
       .frame(width: 275, height: 110)
@@ -70,10 +69,10 @@ struct AudView_Previews: PreviewProvider {
   static var previews: some View {
     AudView(
       store: Store(
-        initialState: FlagState( model: Model.shared  ),
+        initialState: FlagState(),
         reducer: flagReducer,
         environment: FlagEnvironment()
-      ), model: Model.shared
+      )
     )
   }
 }

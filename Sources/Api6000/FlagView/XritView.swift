@@ -70,7 +70,7 @@ struct XritView_Previews: PreviewProvider {
   static var previews: some View {
     XritView(
       store: Store(
-        initialState: FlagState(  model: Model.shared  ),
+        initialState: FlagState(),
         reducer: flagReducer,
         environment: FlagEnvironment()
       ), model: Model.shared

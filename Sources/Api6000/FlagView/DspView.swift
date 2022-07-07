@@ -13,7 +13,6 @@ import ComposableArchitecture
 
 struct DspView: View {
   let store: Store<FlagState, FlagAction>
-  @ObservedObject var model: Model
   
   var body: some View {
     WithViewStore(self.store) { viewStore in
@@ -34,10 +33,10 @@ struct DspView: View {
         }
         
         VStack(spacing: 12) {
-          Text(String(format: "%2.0f", model.activeSlice!.wnbLevel)).frame(width: 30)
-          Text(String(format: "%2.0f", model.activeSlice!.nbLevel)).frame(width: 30)
-          Text(String(format: "%2.0f", model.activeSlice!.nrLevel)).frame(width: 30)
-          Text(String(format: "%2.0f", model.activeSlice!.anfLevel)).frame(width: 30)
+          Text(String(format: "%2.0f", viewStore.model.activeSlice!.wnbLevel)).frame(width: 30)
+          Text(String(format: "%2.0f", viewStore.model.activeSlice!.nbLevel)).frame(width: 30)
+          Text(String(format: "%2.0f", viewStore.model.activeSlice!.nrLevel)).frame(width: 30)
+          Text(String(format: "%2.0f", viewStore.model.activeSlice!.anfLevel)).frame(width: 30)
         }
       }
     }
@@ -53,10 +52,10 @@ struct DspView_Previews: PreviewProvider {
   static var previews: some View {
     DspView(
       store: Store(
-        initialState: FlagState( model: Model.shared  ),
+        initialState: FlagState(),
         reducer: flagReducer,
         environment: FlagEnvironment()
-      ), model: Model.shared
+      )
     )
   }
 }

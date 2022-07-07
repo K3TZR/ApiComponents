@@ -13,7 +13,6 @@ import ComposableArchitecture
 
 struct DaxView: View {
   let store: Store<FlagState, FlagAction>
-  @ObservedObject var model: Model
 
   var body: some View {
     
@@ -38,10 +37,10 @@ struct DaxView_Previews: PreviewProvider {
   static var previews: some View {
     DaxView(
       store: Store(
-        initialState: FlagState( model: Model.shared ),
+        initialState: FlagState(),
         reducer: flagReducer,
         environment: FlagEnvironment()
-      ), model: Model.shared
+      )
     )
   }
 }

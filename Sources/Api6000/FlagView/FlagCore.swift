@@ -17,7 +17,7 @@ import Shared
 // MARK: - State, Actions & Environment
 
 public struct FlagState: Equatable {
-  public var model: Model
+  public var model: Model { Model.shared }
 //  public var activeSlice: Slice?
   public var subViewSelection: String
   public var canBeMinimized: Bool
@@ -29,7 +29,7 @@ public struct FlagState: Equatable {
 
   public init
   (
-    model: Model,
+//    model: Model,
 //    activeSlice: Slice? = nil,
     subViewSelection: String = "AUD",
     canBeMinimized: Bool = false,
@@ -38,7 +38,7 @@ public struct FlagState: Equatable {
     quickModes: [String] = ["USB", "LSB", "CW"]
   )
   {
-    self.model = model
+//    self.model = model
 //    self.activeSlice = activeSlice
     self.subViewSelection = subViewSelection
     self.canBeMinimized = canBeMinimized

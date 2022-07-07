@@ -30,6 +30,7 @@ public class Model: Equatable, ObservableObject {
   @Published public var radio: Radio?
   @Published public var activeSlice: Slice?
   @Published public var activePanadapter: Panadapter?
+  @Published public var activeEqualizer: Equalizer?
 
   // Dynamic Models
   public var amplifiers: IdentifiedArrayOf<Amplifier> {

@@ -13,7 +13,6 @@ import ComposableArchitecture
 
 struct ModeView: View {
   let store: Store<FlagState, FlagAction>
-  @ObservedObject var model: Model
 
   func filterLabel(_ slice: Slice, _ index: Int) -> String {
     var formattedWidth = ""
@@ -48,21 +47,21 @@ struct ModeView: View {
         }
         HStack {
           Group {
-            Button(action: { viewStore.send( .filterChanged(0)) }) {Text( filterLabel(model.activeSlice!, 0) )}
-            Button(action: { viewStore.send( .filterChanged(1)) }) {Text( filterLabel(model.activeSlice!, 1) )}
-            Button(action: { viewStore.send( .filterChanged(2)) }) {Text( filterLabel(model.activeSlice!, 2) )}
-            Button(action: { viewStore.send( .filterChanged(3)) }) {Text( filterLabel(model.activeSlice!, 3) )}
-            Button(action: { viewStore.send( .filterChanged(4)) }) {Text( filterLabel(model.activeSlice!, 4) )}
+            Button(action: { viewStore.send( .filterChanged(0)) }) {Text( filterLabel(viewStore.model.activeSlice!, 0) )}
+            Button(action: { viewStore.send( .filterChanged(1)) }) {Text( filterLabel(viewStore.model.activeSlice!, 1) )}
+            Button(action: { viewStore.send( .filterChanged(2)) }) {Text( filterLabel(viewStore.model.activeSlice!, 2) )}
+            Button(action: { viewStore.send( .filterChanged(3)) }) {Text( filterLabel(viewStore.model.activeSlice!, 3) )}
+            Button(action: { viewStore.send( .filterChanged(4)) }) {Text( filterLabel(viewStore.model.activeSlice!, 4) )}
           }
           .frame(width: buttonWidth)
         }
         HStack {
           Group {
-            Button(action: { viewStore.send( .filterChanged(5)) }) {Text( filterLabel(model.activeSlice!, 5) )}
-            Button(action: { viewStore.send( .filterChanged(6)) }) {Text( filterLabel(model.activeSlice!, 6) )}
-            Button(action: { viewStore.send( .filterChanged(7)) }) {Text( filterLabel(model.activeSlice!, 7) )}
-            Button(action: { viewStore.send( .filterChanged(8)) }) {Text( filterLabel(model.activeSlice!, 8) )}
-            Button(action: { viewStore.send( .filterChanged(9)) }) {Text( filterLabel(model.activeSlice!, 9) )}
+            Button(action: { viewStore.send( .filterChanged(5)) }) {Text( filterLabel(viewStore.model.activeSlice!, 5) )}
+            Button(action: { viewStore.send( .filterChanged(6)) }) {Text( filterLabel(viewStore.model.activeSlice!, 6) )}
+            Button(action: { viewStore.send( .filterChanged(7)) }) {Text( filterLabel(viewStore.model.activeSlice!, 7) )}
+            Button(action: { viewStore.send( .filterChanged(8)) }) {Text( filterLabel(viewStore.model.activeSlice!, 8) )}
+            Button(action: { viewStore.send( .filterChanged(9)) }) {Text( filterLabel(viewStore.model.activeSlice!, 9) )}
           }
           .frame(width: buttonWidth)
         }
@@ -80,10 +79,10 @@ struct ModeView_Previews: PreviewProvider {
     static var previews: some View {
       ModeView(
         store: Store(
-          initialState: FlagState( model: Model.shared ),
+          initialState: FlagState(),
           reducer: flagReducer,
           environment: FlagEnvironment()
-        ), model: Model.shared
+        )
       )
     }
 }
