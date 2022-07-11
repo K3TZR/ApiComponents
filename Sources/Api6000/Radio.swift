@@ -208,11 +208,11 @@ public final class Radio: Equatable {
   // ----------------------------------------------------------------------------
   // MARK: - Initialization
   
-  public init(_ packet: Packet, connectionType: ConnectionType = .gui, stationName: String? = nil, programName: String? = nil, lowBandwidthConnect: Bool = false, lowBandwidthDax: Bool = false, disconnectHandle: Handle? = nil, testerModeEnabled: Bool = false) {
+  public init(_ packet: Packet, connectionType: ConnectionType = .gui, command: Tcp, stream: Udp, stationName: String? = nil, programName: String? = nil, lowBandwidthConnect: Bool = false, lowBandwidthDax: Bool = false, disconnectHandle: Handle? = nil, testerModeEnabled: Bool = false) {
     self.packet = packet
     _connectionType = connectionType
-    _tcp = Tcp()
-    _udp = Udp()
+    _tcp = command
+    _udp = stream
     _lowBandwidthConnect = lowBandwidthConnect
     _lowBandwidthDax = lowBandwidthDax
     _stationName = stationName
