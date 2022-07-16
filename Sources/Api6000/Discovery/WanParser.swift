@@ -133,9 +133,10 @@ extension WanListener {
       }
       if _publicIp != nil {
         // publish
-        Task {
-          await Model.shared.wanStatusPublisher.send(WanStatus(.publicIp, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
-        }
+//        Task {
+//          await Model.shared.wanStatusPublisher.send(WanStatus(.publicIp, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
+          NotificationCenter.default.post(name: wanNotification, object: WanStatus(.publicIp, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp) as Any?)
+//        }
       }
     }
   }
@@ -171,9 +172,10 @@ extension WanListener {
     
     if _firstName != nil && _lastName != nil && _callsign != nil {
       // publish
-      Task {
-        await Model.shared.wanStatusPublisher.send(WanStatus(.settings, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
-      }
+//      Task {
+//        await Model.shared.wanStatusPublisher.send(WanStatus(.settings, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
+        NotificationCenter.default.post(name: wanNotification, object: WanStatus(.settings, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp) as Any?)
+//      }
     }
   }
   
@@ -201,9 +203,10 @@ extension WanListener {
     
     if _wanHandle != nil && _serial != nil {
       // publish
-      Task {
-        await Model.shared.wanStatusPublisher.send(WanStatus(.connect, nil, nil, _serial, _wanHandle, _publicIp))
-      }
+//      Task {
+//        await Model.shared.wanStatusPublisher.send(WanStatus(.connect, nil, nil, _serial, _wanHandle, _publicIp))
+        NotificationCenter.default.post(name: wanNotification, object: WanStatus(.connect, nil, nil, _serial, _wanHandle, _publicIp) as Any?)
+//      }
     }
   }
   

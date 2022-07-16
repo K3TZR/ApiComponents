@@ -227,7 +227,8 @@ public class Meter: Identifiable, Equatable, ObservableObject {
             if adjNewValue != previousValue {
               Model.shared.meters[id: id]?.value = adjNewValue
             }
-            meterPublisher.send(meter)
+//            meterPublisher.send(meter)
+            NotificationCenter.default.post(name: meterNotification, object: meter as Any?)
           }
         }
       }

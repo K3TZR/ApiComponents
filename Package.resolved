@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/combine-schedulers",
       "state" : {
-        "revision" : "4cf088c29a20f52be0f2ca54992b492c54e0076b",
-        "version" : "0.5.3"
+        "revision" : "0ba3a562716efabb585ccb169450c5389107286b",
+        "version" : "0.6.0"
       }
     },
     {
@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-case-paths",
       "state" : {
-        "revision" : "ce9c0d897db8a840c39de64caaa9b60119cf4be8",
-        "version" : "0.8.1"
+        "revision" : "a09839348486db8866f85a727b8550be1d671c50",
+        "version" : "0.9.1"
       }
     },
     {
@@ -50,8 +50,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-composable-architecture",
       "state" : {
-        "revision" : "2828dc44f6e3f81d84bcaba72c1ab1c0121d66f6",
-        "version" : "0.34.0"
+        "revision" : "0a38f2c860a64a005afeb8a6fe186eb2818c9a3f",
+        "version" : "0.38.3"
       }
     },
     {
@@ -59,8 +59,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-custom-dump",
       "state" : {
-        "revision" : "c4f78db9b90ca57b7b6abc2223e235242739ea3c",
-        "version" : "0.4.0"
+        "revision" : "21ec1d717c07cea5a026979cb0471dd95c7087e7",
+        "version" : "0.5.0"
       }
     },
     {
@@ -68,8 +68,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-identified-collections",
       "state" : {
-        "revision" : "680bf440178a78a627b1c2c64c0855f6523ad5b9",
-        "version" : "0.3.2"
+        "revision" : "2d6b7ffcc67afd9077fac5e5a29bcd6d39b71076",
+        "version" : "0.4.0"
       }
     },
     {
@@ -78,7 +78,7 @@
       "location" : "https://github.com/K3TZR/UtilityComponents.git",
       "state" : {
         "branch" : "main",
-        "revision" : "823a60cb4bff48b3353ba151df17d003b9d796ae"
+        "revision" : "0533d8b7edc0d79e38d51c2b2765aa21bf0ec7a1"
       }
     },
     {
@@ -87,7 +87,7 @@
       "location" : "https://github.com/K3TZR/ViewComponents.git",
       "state" : {
         "branch" : "main",
-        "revision" : "6945262cfa809a4e69ff2de0e5de5f44938f92ad"
+        "revision" : "05ba7efb28772e1494544c66300f18b251ae3733"
       }
     },
     {
@@ -104,8 +104,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",
       "state" : {
-        "revision" : "50a70a9d3583fe228ce672e8923010c8df2deddd",
-        "version" : "0.2.1"
+        "revision" : "ef8e14e7ce1c0c304c644c6ba365d06c468ded6b",
+        "version" : "0.3.3"
       }
     }
   ],

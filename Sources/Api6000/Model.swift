@@ -32,10 +32,6 @@ public class Model: Equatable, ObservableObject {
   // MARK: - Public properties
   
   public var testerMode = false
-  public var packetPublisher = PassthroughSubject<PacketUpdate, Never>()
-  public var clientPublisher = PassthroughSubject<ClientUpdate, Never>()
-  public var testPublisher = PassthroughSubject<SmartlinkTestResult, Never>()
-  public var wanStatusPublisher = PassthroughSubject<WanStatus, Never>()
   
   @Published public var radio: Radio?
   @Published public var activeSlice: Slice?
@@ -127,7 +123,8 @@ public class Model: Equatable, ObservableObject {
   public func removePackets(condition: (Packet) -> Bool) {
     for packet in packets where condition(packet) {
       let removedPacket = packets.remove(id: packet.id)
-      packetPublisher.send(PacketUpdate(.deleted, packet: removedPacket!))
+//      packetPublisher.send(PacketUpdate(.deleted, packet: removedPacket!))
+      NotificationCenter.default.post(name: packetNotification, object: PacketUpdate(.deleted, packet: removedPacket!))
       log("Model: packet removed, interval = \(abs(removedPacket!.lastSeen.timeIntervalSince(Date())))", .debug, #function, #file, #line)
     }
   }
@@ -229,7 +226,8 @@ public class Model: Equatable, ObservableObject {
       if client.handle != 0 && client.clientId != nil && client.program != "" && client.station != "" {
         log("Radio: guiClient updated: \(client.handle.hex), \(client.station), \(client.program), \(client.clientId!)", .info, #function, #file, #line)
         //              NC.post(.guiClientHasBeenUpdated, object: client as Any?)
-        clientPublisher.send(ClientUpdate(.updated, client: client, source: radio?.packet.source ?? .local))
+//        clientPublisher.send(ClientUpdate(.updated, client: client, source: radio?.packet.source ?? .local))
+        NotificationCenter.default.post(name: clientNotification, object: ClientUpdate(.updated, client: client, source: radio?.packet.source ?? .local) as Any?)
       }
     }
     // parse remaining properties
@@ -460,7 +458,9 @@ public class Model: Equatable, ObservableObject {
         packets[id: knownPacketId] = newPacket
         
         // publish and log the packet
-        packetPublisher.send(PacketUpdate(.updated, packet: newPacket))
+//        packetPublisher.send(PacketUpdate(.updated, packet: newPacket))
+        NotificationCenter.default.post(name: packetNotification, object: PacketUpdate(.updated, packet: newPacket) as Any?)
+
         log("Model: \(newPacket.source.rawValue) packet updated, \(newPacket.nickname) \(newPacket.serial)", .debug, #function, #file, #line)
         
         // find, publish & log client additions / deletions
@@ -480,7 +480,10 @@ public class Model: Equatable, ObservableObject {
     packets.append(newPacket)
     
     // publish & log
-    packetPublisher.send(PacketUpdate(.added, packet: newPacket))
+//    packetPublisher.send(PacketUpdate(.added, packet: newPacket))
+    NotificationCenter.default.post(name: packetNotification, object: PacketUpdate(.added, packet: newPacket) as Any?)
+
+    
     log("Model: \(newPacket.source.rawValue) packet added, \(newPacket.nickname) \(newPacket.serial)", .debug, #function, #file, #line)
     
     // find, publish & log client additions
@@ -542,7 +545,9 @@ public class Model: Equatable, ObservableObject {
       if oldPacket == nil || oldPacket?.guiClients[id: guiClient.id] == nil {
         
         // publish & log new guiClient
-        clientPublisher.send(ClientUpdate(.added, client: guiClient, source: receivedPacket.source))
+//        clientPublisher.send(ClientUpdate(.added, client: guiClient, source: receivedPacket.source))
+        NotificationCenter.default.post(name: clientNotification, object: ClientUpdate(.added, client: guiClient, source: receivedPacket.source) as Any?)
+
         log("Discovered: \(receivedPacket.source.rawValue) \(receivedPacket.nickname) guiClient added, \(guiClient.station)", .debug, #function, #file, #line)
         
         // FIXME: ?????
@@ -568,7 +573,9 @@ public class Model: Equatable, ObservableObject {
       if newPacket.guiClients[id: guiClient.id] == nil {
         
         // publish & log
-        clientPublisher.send(ClientUpdate(.deleted, client: guiClient, source: newPacket.source))
+//        clientPublisher.send(ClientUpdate(.deleted, client: guiClient, source: newPacket.source))
+        NotificationCenter.default.post(name: clientNotification, object: ClientUpdate(.deleted, client: guiClient, source: newPacket.source) as Any?)
+
         log("Discovered: \(newPacket.source.rawValue) \(newPacket.nickname) guiClient deleted, \(guiClient.station)", .debug, #function, #file, #line)
         
         for station in stations where station.guiClientStations == guiClient.station {
