@@ -21,9 +21,6 @@ extension WanListener {
     case handle
     case serial
   }
-  private enum InfoTokens: String {
-    case publicIp = "public_ip"
-  }
   private enum MessageTokens: String {
     case application
     case radio
@@ -115,13 +112,16 @@ extension WanListener {
   /// Parse a received "application" message
   /// - Parameter properties:         a KeyValuesArray
   private func parseApplicationInfo(_ properties: KeyValuesArray) {
-    
+    enum Property: String {
+      case publicIp = "public_ip"
+    }
+
     log("Wan Parser: ApplicationInfo received", .debug, #function, #file, #line)
 
     // process each key/value pair, <key=value>
     for property in properties {
       // Check for Unknown Keys
-      guard let token = InfoTokens(rawValue: property.key)  else {
+      guard let token = Property(rawValue: property.key)  else {
         // log it and ignore the Key
         log("Wan Parser: unknown info token: \(property.key)", .warning, #function, #file, #line)
         continue
@@ -133,7 +133,9 @@ extension WanListener {
       }
       if _publicIp != nil {
         // publish
-        Discovered.shared.wanStatusPublisher.send(WanStatus(.publicIp, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
+        Task {
+          await Model.shared.wanStatusPublisher.send(WanStatus(.publicIp, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
+        }
       }
     }
   }
@@ -169,7 +171,9 @@ extension WanListener {
     
     if _firstName != nil && _lastName != nil && _callsign != nil {
       // publish
-      Discovered.shared.wanStatusPublisher.send(WanStatus(.settings, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
+      Task {
+        await Model.shared.wanStatusPublisher.send(WanStatus(.settings, _firstName! + " " + _lastName!, _callsign!, _serial, _wanHandle, _publicIp))
+      }
     }
   }
   
@@ -197,7 +201,9 @@ extension WanListener {
     
     if _wanHandle != nil && _serial != nil {
       // publish
-      Discovered.shared.wanStatusPublisher.send(WanStatus(.connect, nil, nil, _serial, _wanHandle, _publicIp))
+      Task {
+        await Model.shared.wanStatusPublisher.send(WanStatus(.connect, nil, nil, _serial, _wanHandle, _publicIp))
+      }
     }
   }
   
@@ -242,7 +248,10 @@ extension WanListener {
       }
       packet.source = .smartlink
       // add packet to Packets
-      Discovered.shared.processPacket(packet)
+      let newPacket = packet
+      Task {
+        await Model.shared.processPacket(newPacket)
+      }
     }
   }
   

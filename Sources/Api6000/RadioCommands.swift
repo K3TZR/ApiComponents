@@ -157,23 +157,23 @@ extension Radio {
   // ----------------------------------------------------------------------------
   // MARK: - Interlock methods
   
-  /// Change the MOX property when an Interlock state change occurs
-  ///
-  /// - Parameter state:            a new Interloack state
-  func interlockStateChange(_ state: String) {
-    let currentMox = mox
-    
-    // if PTT_REQUESTED or TRANSMITTING
-    if state == Interlock.States.pttRequested.rawValue || state == Interlock.States.transmitting.rawValue {
-      // and mox not on, turn it on
-      if currentMox == false { mox = true }
-      
-      // if READY or UNKEY_REQUESTED
-    } else if state == Interlock.States.ready.rawValue || state == Interlock.States.unKeyRequested.rawValue {
-      // and mox is on, turn it off
-      if currentMox == true { mox = false  }
-    }
-  }
+//  /// Change the MOX property when an Interlock state change occurs
+//  ///
+//  /// - Parameter state:            a new Interloack state
+//  func interlockStateChange(_ state: String) {
+//    let currentMox = mox
+//    
+//    // if PTT_REQUESTED or TRANSMITTING
+//    if state == Interlock.States.pttRequested.rawValue || state == Interlock.States.transmitting.rawValue {
+//      // and mox not on, turn it on
+//      if currentMox == false { mox = true }
+//      
+//      // if READY or UNKEY_REQUESTED
+//    } else if state == Interlock.States.ready.rawValue || state == Interlock.States.unKeyRequested.rawValue {
+//      // and mox is on, turn it off
+//      if currentMox == true { mox = false  }
+//    }
+//  }
   
   // ----------------------------------------------------------------------------
   // MARK: - Meter methods

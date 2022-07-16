@@ -11,10 +11,39 @@ import Combine
 import Shared
 import Vita
 
+//public enum ObjectType: String {
+////  case amplifier
+////  case atu
+////  case client
+////  case cwx
+////  case display
+////  case eq
+////  case file
+////  case gps
+////  case interlock
+////  case memory
+////  case meter
+////  case mixer
+////  case profile
+////  case radio
+//  case slice
+////  case stream
+//  case tnf
+////  case transmit
+////  case turf
+////  case usbCable                 = "usb_cable"
+////  case wan
+////  case waveform
+////  case xvtr
+//}
+
 public final class Radio: Equatable {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
-  
+
+  public var packetPublisher = PassthroughSubject<PacketUpdate, Never>()
+  public var clientPublisher = PassthroughSubject<ClientUpdate, Never>()
+
   public static func == (lhs: Radio, rhs: Radio) -> Bool { lhs === rhs }
   public static let objectQ = DispatchQueue(label: "Radio.objectQ", attributes: [.concurrent])
   
@@ -242,10 +271,21 @@ public final class Radio: Equatable {
     // subscribe to the publisher of TcpCommands received messages
     _cancellableCommandData = _tcp.receivedPublisher
       .receive(on: _parseQ)
-      .sink { [weak self] msg in
-        self?.receivedMessage(msg)
+      .sink { [weak self] tcpMessage in
+        //        print(msg)
+        
+        // switch on the first character of the text
+        switch tcpMessage.text.prefix(1) {
+          
+        case "H", "h":  self?.connectionHandle = String(tcpMessage.text.dropFirst()).handle ; log("Radio: connectionHandle = \(self?.connectionHandle?.hex ?? "nil")", .debug, #function, #file, #line)
+        case "M", "m":  self?.parseMessage( tcpMessage.text.dropFirst() )
+        case "R", "r":  self?.parseReply( tcpMessage.text.dropFirst() )
+        case "S", "s":  self?.parseStatus( tcpMessage.text.dropFirst() )
+        case "V", "v":  self?.hardwareVersion = String(tcpMessage.text.dropFirst()) ; log("Radio: hardwareVersion = \(self?.hardwareVersion ?? "unknown")", .debug, #function, #file, #line)
+        default:        log("Radio: unexpected message = \(tcpMessage)", .warning, #function, #file, #line)
+        }
       }
-     
+
     _cancellableCommandStatus = _tcp.statusPublisher
       .sink { [weak self] status in
         self?.tcpStatus(status)
@@ -264,12 +304,12 @@ public final class Radio: Equatable {
         self?.udpStatus(status)
       }
     
-    _cancellablePacketUpdate = Discovered.shared.packetPublisher
+    _cancellablePacketUpdate = packetPublisher
       .sink { [weak self] update in
         self?.packetUpdate(update)
       }
 
-    _cancellableClientUpdate = Discovered.shared.clientPublisher
+    _cancellableClientUpdate = clientPublisher
       .sink { [weak self] update in
         self?.clientUpdate(update)
       }
@@ -358,7 +398,9 @@ public final class Radio: Equatable {
     let sequenceNumber = _tcp.send(command, diagnostic: flag)
     
     // register to be notified when reply received
-    addReplyHandler( sequenceNumber, replyTuple: (replyTo: callback, command: command) )
+    Task {
+      await Model.shared.addReplyHandler( sequenceNumber, replyTuple: (replyTo: callback, command: command) )
+    }
   }
   
   /// Send data to the Radio (hardware)
@@ -369,25 +411,25 @@ public final class Radio: Equatable {
     _udp.send(data)
   }
   
-  /// Determine if status is for this client
-  /// - Parameters:
-  ///   - properties:     a KeyValuesArray
-  ///   - clientHandle:   the handle of ???
-  /// - Returns:          true if a mtch
-  public func isForThisClient(_ properties: KeyValuesArray, connectionHandle: Handle?) -> Bool {
-    var clientHandle : Handle = 0
-    
-    guard connectionHandle != nil else { return false }
-    
-    // allow a Tester app to see all Streams
-    guard _testerModeEnabled == false else { return true }
-    
-    // find the handle property
-    for property in properties.dropFirst(2) where property.key == "client_handle" {
-      clientHandle = property.value.handle ?? 0
-    }
-    return clientHandle == connectionHandle
-  }
+//  /// Determine if status is for this client
+//  /// - Parameters:
+//  ///   - properties:     a KeyValuesArray
+//  ///   - clientHandle:   the handle of ???
+//  /// - Returns:          true if a mtch
+//  public func isForThisClient(_ properties: KeyValuesArray, connectionHandle: Handle?) -> Bool {
+//    var clientHandle : Handle = 0
+//    
+//    guard connectionHandle != nil else { return false }
+//    
+//    // allow a Tester app to see all Streams
+//    guard _testerModeEnabled == false else { return true }
+//    
+//    // find the handle property
+//    for property in properties.dropFirst(2) where property.key == "client_handle" {
+//      clientHandle = property.value.handle ?? 0
+//    }
+//    return clientHandle == connectionHandle
+//  }
   
   /// Process received UDP Vita packets
   ///   arrives on the udpReceiveQ
@@ -401,15 +443,19 @@ public final class Radio: Equatable {
     case .meter:
       // unlike other streams, the Meter stream contains multiple Meters
       // and is processed by a class method on the Meter object
-      Meter.vitaProcessor(vitaPacket)
+      Task {
+        await Model.shared.streamDistributor(vitaPacket, .meter)
+      }
       
     case .panadapter:
-      if let object = Model.shared.panadapters[id: vitaPacket.streamId]
-      { object.vitaProcessor(vitaPacket, _testerModeEnabled) }
+      Task {
+        await Model.shared.streamDistributor(vitaPacket, .panadapter)
+      }
       
     case .waterfall:
-      if var object = Model.shared.waterfalls[id: vitaPacket.streamId]
-      { object.vitaProcessor(vitaPacket, _testerModeEnabled) }
+      Task {
+        await Model.shared.streamDistributor(vitaPacket, .waterfall)
+      }
 
     case .daxAudio:
       break
@@ -610,26 +656,26 @@ public final class Radio: Equatable {
   /// Remove all Radio objects
   private func removeAllObjects() {    
     // ----- remove all objects -----, NOTE: order is important
-    DaxRxAudioStream.removeAll()
-    DaxIqStream.removeAll()
-    DaxMicAudioStream.removeAll()
-    DaxTxAudioStream.removeAll()
-    RemoteRxAudioStream.removeAll()
-    RemoteTxAudioStream.removeAll()
-    Amplifier.removeAll()
-    BandSetting.removeAll()
-    Tnf.removeAll()
-    Slice.removeAll()
-    Panadapter.removeAll()
-    Waterfall.removeAll()
-    Profile.removeAll()
-    Equalizer.removeAll()
-    Memory.removeAll()
-    Meter.removeAll()
-    
-    Model.shared.replyHandlers.removeAll()
-    UsbCable.removeAll()
-    Xvtr.removeAll()
+    Task {
+      await Model.shared.removeAll(.daxRxAudioStream)
+      await Model.shared.removeAll(.daxIqStream)
+      await Model.shared.removeAll(.daxMicAudioStream)
+      await Model.shared.removeAll(.daxTxAudioStream)
+      await Model.shared.removeAll(.remoteRxAudioStream)
+      await Model.shared.removeAll(.remoteTxAudioStream)
+      await Model.shared.removeAll(.amplifier)
+      await Model.shared.removeAll(.bandSetting)
+      await Model.shared.removeAll(.tnf)
+      await Model.shared.removeAll(.slice)
+      await Model.shared.removeAll(.panadapter)
+      await Model.shared.removeAll(.waterfall)
+      await Model.shared.removeAll(.profile)
+      await Model.shared.removeAll(.memory)
+      await Model.shared.removeAll(.meter)
+      await Model.shared.removeAll(.usbCable)
+      await Model.shared.removeAll(.xvtr)
+      await Model.shared.removeAll(.replyHandlers)
+    }
     
     nickname = ""
     smartSdrMB = ""

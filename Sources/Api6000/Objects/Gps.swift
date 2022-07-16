@@ -9,31 +9,30 @@
 import Foundation
 
 import Shared
-// import LogProxy
 
-/// Gps Class implementation
-///
-///      creates a Gps instance to be used by a Client to support the
-///      processing of the internal Gps (if installed). Gps structs are added,
-///      removed and updated by the incoming TCP messages.
-///
-public struct Gps {
+// Gps
+//      creates a Gps instance to be used by a Client to support the
+//      processing of the internal Gps (if installed). Gps instances are added,
+//      removed and updated by the incoming TCP messages.
+//
+@MainActor
+public class Gps: ObservableObject {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var altitude = ""
-  public internal(set) var frequencyError: Double = 0
-  public internal(set) var grid = ""
-  public internal(set) var latitude = ""
-  public internal(set) var longitude = ""
-  public internal(set) var speed = ""
-  public internal(set) var status = false
-  public internal(set) var time = ""
-  public internal(set) var track: Double = 0
-  public internal(set) var tracked = false
-  public internal(set) var visible = false
+  @Published public var altitude = ""
+  @Published public var frequencyError: Double = 0
+  @Published public var grid = ""
+  @Published public var latitude = ""
+  @Published public var longitude = ""
+  @Published public var speed = ""
+  @Published public var status = false
+  @Published public var time = ""
+  @Published public var track: Double = 0
+  @Published public var tracked = false
+  @Published public var visible = false
   
-  public  enum GpsToken: String {
+  public  enum Property: String {
     case altitude
     case frequencyError = "freq_error"
     case grid
@@ -48,15 +47,15 @@ public struct Gps {
   }
 
   // ----------------------------------------------------------------------------
-  // MARK: - Public static methods
+  // MARK: - Public Instance methods
 
   /// Parse a Gps status message
   /// - Parameter properties:       a KeyValuesArray
-  public mutating func parseProperties(_ properties: KeyValuesArray) {
+  public func parse(_ properties: KeyValuesArray) async {
     // process each key/value pair, <key=value>
     for property in properties {
       // Check for Unknown Keys
-      guard let token = GpsToken(rawValue: property.key)  else {
+      guard let token = Property(rawValue: property.key)  else {
         // log it and ignore the Key
         log("Gps, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
@@ -77,6 +76,15 @@ public struct Gps {
       }
     }
   }
+
+  
+  
+  
+  
+  
+  
+  
+  
   
   ///   Gps Install
   ///   - Parameters:
@@ -97,7 +105,7 @@ public struct Gps {
   ///   - radio:      the current radio
   ///   - property:   a Gps Token
   ///   - value:      the new value
-  public static func setProperty(radio: Radio, _ property: GpsToken, value: Any) {
+  public static func setProperty(radio: Radio, _ property: Property, value: Any) {
     // FIXME: add commands
   }
 
@@ -109,7 +117,7 @@ public struct Gps {
   ///   - radio:      a Radio instance
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ token: GpsToken, _ value: Any) {
+  private static func sendCommand(_ radio: Radio, _ token: Property, _ value: Any) {
     // FIXME: add commands
   }
 }

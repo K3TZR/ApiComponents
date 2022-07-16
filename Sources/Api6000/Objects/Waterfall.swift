@@ -13,31 +13,49 @@ import Shared
 // import LogProxy
 import Vita
 
-// Waterfall struct implementation
+// Waterfall
 //       creates a Waterfall instance to be used by a Client to support the
-//       processing of a Waterfall. Waterfall structs are added / removed by the
+//       processing of a Waterfall. Waterfall instances are added / removed by the
 //       incoming TCP messages. Waterfall objects periodically receive Waterfall
-//       data in a UDP stream. They are collected in the WaterfallsCollection.
+//       data in a UDP stream. They are collected in the Model.waterfalls
+//       collection..
+@MainActor
+public class Waterfall: Identifiable, Equatable, ObservableObject {
+  // Equality
+  public nonisolated static func == (lhs: Waterfall, rhs: Waterfall) -> Bool {
+    lhs.id == rhs.id
+  }
+  
+  // ----------------------------------------------------------------------------
+  // MARK: - Initialization
+  
+  public init(_ id: WaterfallId) {
+    self.id = id
+    
+    // allocate two dataframes
+    for _ in 0..<_numberOfFrames {
+      _frames.append(WaterfallFrame(frameSize: 4096))
+    }
+  }
 
-public struct Waterfall: Identifiable {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var id: WaterfallId
-  public internal(set) var isStreaming = false
-  public internal(set) var initialized: Bool = false
+  public let id: WaterfallId
+  public var isStreaming = false
+  public var initialized: Bool = false
 
-  public internal(set) var autoBlackEnabled = false
-  public internal(set) var autoBlackLevel: UInt32 = 0
-  public internal(set) var blackLevel = 0
-  public internal(set) var clientHandle: Handle = 0
-  public internal(set) var colorGain = 0
-  public internal(set) var delegate: StreamHandler?
-  public internal(set) var gradientIndex = 0
-  public internal(set) var lineDuration = 0
-  public internal(set) var panadapterId: PanadapterId?
+  @Published public var autoBlackEnabled = false
+  @Published public var autoBlackLevel: UInt32 = 0
+  @Published public var blackLevel = 0
+  @Published public var clientHandle: Handle = 0
+  @Published public var colorGain = 0
+  @Published public var delegate: StreamHandler?
+  @Published public var gradientIndex = 0
+  @Published public var lineDuration = 0
+  @Published public var panadapterId: PanadapterId?
   
-  public enum WaterfallToken : String {
+  public enum Property: String {
      case clientHandle         = "client_handle"   // New Api only
      
      // on Waterfall
@@ -70,21 +88,22 @@ public struct Waterfall: Identifiable {
 
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
+  
   static var q = DispatchQueue(label: "WaterfallSequenceQ", attributes: [.concurrent])
   private var _expectedFrameNumber = -1
   private var _droppedPackets = 0
   private var _accumulatedBins = 0
 
-  private struct PayloadHeader {  // struct to mimic payload layout
-    var firstBinFreq: UInt64    // 8 bytes
-    var binBandwidth: UInt64    // 8 bytes
-    var lineDuration : UInt32   // 4 bytes
-    var segmentBinCount: UInt16    // 2 bytes
-    var height: UInt16          // 2 bytes
-    var frameNumber: UInt32   // 4 bytes
-    var autoBlackLevel: UInt32  // 4 bytes
+  private struct PayloadHeader {    // struct to mimic payload layout
+    var firstBinFreq: UInt64        // 8 bytes
+    var binBandwidth: UInt64        // 8 bytes
+    var lineDuration : UInt32       // 4 bytes
+    var segmentBinCount: UInt16     // 2 bytes
+    var height: UInt16              // 2 bytes
+    var frameNumber: UInt32         // 4 bytes
+    var autoBlackLevel: UInt32      // 4 bytes
     var frameBinCount: UInt16       // 2 bytes
-    var startingBinNumber: UInt16        // 2 bytes
+    var startingBinNumber: UInt16   // 2 bytes
   }
   
   // ----------------------------------------------------------------------------
@@ -93,105 +112,18 @@ public struct Waterfall: Identifiable {
   private var _frames = [WaterfallFrame]()
   @Atomic(0, q) private var index: Int
     
-//  let _log: Log = { msg,level,function,file,line in
-//    log(msg, level, function, file, line)
-//  }
-
   private let _numberOfFrames = 10
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Initialization
-  
-  public init(_ id: WaterfallId) {
-    self.id = id
-    
-    // allocate two dataframes
-    for _ in 0..<_numberOfFrames {
-      _frames.append(WaterfallFrame(frameSize: 4096))
-    }
-  }
 
   // ----------------------------------------------------------------------------
-  // MARK: - Public methods
+  // MARK: - Public Instance methods
   
-  /// Parse a Waterfall status message
-  /// - Parameters:
-  ///   - properties:     a KeyValuesArray of Waterfall properties
-  ///   - inUse:          false = "to be deleted"
-  public static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    // get the Id
-    if let id = properties[1].key.streamId {
-      // is the object in use?
-      if inUse {
-        // YES, does it exist?
-        if Model.shared.waterfalls[id: id] == nil {
-          // Create a Waterfall & add it to the Waterfalls collection
-          Model.shared.waterfalls[id: id] = Waterfall(id)
-          log("Waterfall \(id.hex): added", .debug, #function, #file, #line)
-        }
-        // pass the key values to the Waterfall for parsing (dropping the Type and Id)
-        Model.shared.waterfalls[id: id]?.parseProperties( Array(properties.dropFirst(2)))
-        
-      } else {
-        // NO, does it exist?
-        if Model.shared.waterfalls[id: id] != nil {
-          // YES, remove it
-          remove(id)
-        }
-      }
-    }
-  }
-
-  public static func setProperty(radio: Radio, _ id: WaterfallId, property: WaterfallToken, value: Any) {
-    switch property {
-    case .autoBlackEnabled:   sendCommand( radio, id, .autoBlackEnabled, (value as! Bool).as1or0)
-    case .blackLevel:         sendCommand( radio, id, .blackLevel, value)
-    case .colorGain:          sendCommand( radio, id, .colorGain, value)
-    case .gradientIndex:      sendCommand( radio, id, .gradientIndex, value)
-    case .lineDuration:       sendCommand( radio, id, .lineDuration, value)
-    default:                  break
-    }
-  }
-
-  public static func getProperty( _ id: WaterfallId, property: WaterfallToken) -> Any? {
-    switch property {
-    case .autoBlackEnabled:   return Model.shared.waterfalls[id: id]?.autoBlackEnabled as Any
-    case .blackLevel:         return Model.shared.waterfalls[id: id]?.blackLevel as Any
-    case .clientHandle:       return Model.shared.waterfalls[id: id]?.clientHandle as Any
-    case .colorGain:          return Model.shared.waterfalls[id: id]?.colorGain as Any
-    case .gradientIndex:      return Model.shared.waterfalls[id: id]?.gradientIndex as Any
-    case .lineDuration:       return Model.shared.waterfalls[id: id]?.lineDuration as Any
-    case .panadapterId:       return Model.shared.waterfalls[id: id]!.panadapterId as Any
-      // the following are ignored here
-    case .available, .band, .bandwidth, .bandZoomEnabled, .capacity, .center, .daxIq, .daxIqChannel,
-        .daxIqRate, .loopA, .loopB, .rfGain, .rxAnt, .segmentZoomEnabled, .wide, .xPixels, .xvtr:  return nil
-    }
-  }
-
-  /// Remove the specified Waterfall
-  /// - Parameter id:     a WaterfallId
-  public static func remove(_ id: WaterfallId) {
-    Model.shared.waterfalls.remove(id: id)
-    log("Waterfall \(id.hex): removed", .debug, #function, #file, #line)
-  }
-  
-  /// Remove all Waterfalls
-  public static func removeAll() {
-    for waterfall in Model.shared.waterfalls {
-      remove(waterfall.id)
-    }
-  }
-
-  // ----------------------------------------------------------------------------
-  // MARK: - Private methods
-  
-  /// Parse Waterfall key/value pairs
+  /// Parse key/value pairs
   /// - Parameter properties:       a KeyValuesArray
-  private mutating func parseProperties(_ properties: KeyValuesArray) {
+  public func parse(_ properties: KeyValuesArray) async {
     // process each key/value pair, <key=value>
     for property in properties {
       // check for unknown Keys
-      guard let token = WaterfallToken(rawValue: property.key) else {
+      guard let token = Property(rawValue: property.key) else {
         // log it and ignore the Key
         log("Waterfall \(id.hex) unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
@@ -218,16 +150,34 @@ public struct Waterfall: Identifiable {
       log("Waterfall \(id.hex): initialized handle = \(clientHandle.hex)", .debug, #function, #file, #line)
     }
   }
-    
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   /// Send a command to Set a Waterfall property
   /// - Parameters:
   ///   - radio:      a Radio instance
   ///   - id:         the Id for the specified Waterfall
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ id: WaterfallId, _ token: WaterfallToken, _ value: Any) {
+  private static func sendCommand(_ radio: Radio, _ id: WaterfallId, _ token: Property, _ value: Any) {
       radio.send("display panafall set " + "\(id.hex) " + token.rawValue + "=\(value)")
   }
+
+  
+  
+  
+  
+  
+  
+  
   
   /// Process the Waterfall Vita struct
   ///
@@ -237,9 +187,9 @@ public struct Waterfall: Identifiable {
   ///
   /// - Parameters:
   ///   - vita:       a Vita struct
-  mutating func vitaProcessor(_ vita: Vita, _ testMode: Bool = false) {
-    if Model.shared.waterfalls[id: vita.streamId]!.isStreaming == false {
-      Model.shared.waterfalls[id: vita.streamId]!.isStreaming = true
+  public func vitaProcessor(_ vita: Vita, _ testMode: Bool = false) {
+    if isStreaming == false {
+      isStreaming = true
       // log the start of the stream
       log("Waterfall stream \(vita.streamId.hex): started", .info, #function, #file, #line)
     }

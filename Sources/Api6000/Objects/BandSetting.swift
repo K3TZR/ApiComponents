@@ -10,82 +10,42 @@ import Foundation
 
 import Shared
 
-// BandSetting Class implementation
+// BandSetting
 //      creates a BandSetting instance to be used by a Client to support the
-//      processing of the band settings. BandSetting structs are added, removed and
+//      processing of the band settings. BandSetting instances are added, removed and
 //      updated by the incoming TCP messages. They are collected in the
 //      Model.bandSettings collection.
+@MainActor
+public class BandSetting: Identifiable, Equatable, ObservableObject {
+  // Equality
+  public nonisolated static func == (lhs: BandSetting, rhs: BandSetting) -> Bool {
+    lhs.id == rhs.id
+  }
 
-public struct BandSetting: Identifiable {
+  // ------------------------------------------------------------------------------
+  // MARK: - Initialization
+  
+  public init(_ id: BandId) { self.id = id }
+  
   // ------------------------------------------------------------------------------
   // MARK: - Public properties
   
   public let id: BandId
-
   public var initialized: Bool = false
-  public var accTxEnabled: Bool = false
-  public var accTxReqEnabled: Bool = false
-  public var bandName: String = ""
-  public var hwAlcEnabled: Bool = false
-  public var inhibit: Bool = false
-  public var rcaTxReqEnabled: Bool = false
-  public var rfPower: Int = 0
-  public var tunePower: Int = 0
-  public var tx1Enabled: Bool = false
-  public var tx2Enabled: Bool = false
-  public var tx3Enabled: Bool  = false
 
-//  public var initialized: Bool {
-//    get { Model.q.sync { _initialized } }
-//    set { if newValue != _initialized { Model.q.sync(flags: .barrier) { _initialized = newValue } }}}
-//  public var accTxEnabled: Bool {
-//    get { Model.q.sync { _accTxEnabled } }
-//    set { if newValue != _accTxEnabled { Model.q.sync(flags: .barrier) { _accTxEnabled = newValue } }}}
-//  public var accTxReqEnabled: Bool {
-//    get { Model.q.sync { _accTxReqEnabled } }
-//    set { if newValue != _accTxReqEnabled { Model.q.sync(flags: .barrier) { _accTxReqEnabled = newValue } }}}
-//  public var bandName: String {
-//    get { Model.q.sync { _bandName } }
-//    set { if newValue != _bandName { Model.q.sync(flags: .barrier) { _bandName = newValue } }}}
-//  public var hwAlcEnabled: Bool {
-//    get { Model.q.sync { _hwAlcEnabled } }
-//    set { if newValue != _hwAlcEnabled { Model.q.sync(flags: .barrier) { _hwAlcEnabled = newValue } }}}
-//  public var inhibit: Bool {
-//    get { Model.q.sync { _inhibit } }
-//    set { if newValue != _inhibit { Model.q.sync(flags: .barrier) { _inhibit = newValue } }}}
-//  public var rcaTxReqEnabled: Bool {
-//    get { Model.q.sync { _rcaTxReqEnabled } }
-//    set { if newValue != _rcaTxReqEnabled { Model.q.sync(flags: .barrier) { _rcaTxReqEnabled = newValue } }}}
-//  public var rfPower: Int {
-//    get { Model.q.sync { _rfPower } }
-//    set { if newValue != _rfPower { Model.q.sync(flags: .barrier) { _rfPower = newValue } }}}
-//  public var tunePower: Int {
-//    get { Model.q.sync { _tunePower } }
-//    set { if newValue != _tunePower { Model.q.sync(flags: .barrier) { _tunePower = newValue } }}}
-//  public var tx1Enabled: Bool {
-//    get { Model.q.sync { _tx1Enabled } }
-//    set { if newValue != _tx1Enabled { Model.q.sync(flags: .barrier) { _tx1Enabled = newValue } }}}
-//  public var tx2Enabled: Bool {
-//    get { Model.q.sync { _tx2Enabled } }
-//    set { if newValue != _tx2Enabled { Model.q.sync(flags: .barrier) { _tx2Enabled = newValue } }}}
-//  public var tx3Enabled: Bool {
-//    get { Model.q.sync { _tx3Enabled } }
-//    set { if newValue != _tx3Enabled { Model.q.sync(flags: .barrier) { _tx3Enabled = newValue } }}}
-
-//  private var _initialized = false
-//  private var _accTxEnabled = false
-//  private var _accTxReqEnabled = false
-//  private var _bandName = ""
-//  private var _hwAlcEnabled = false
-//  private var _inhibit = false
-//  private var _rcaTxReqEnabled = false
-//  private var _rfPower = 0
-//  private var _tunePower = 0
-//  private var _tx1Enabled = false
-//  private var _tx2Enabled = false
-//  private var _tx3Enabled = false
+  @Published public var accTxEnabled: Bool = false
+  @Published public var accTxReqEnabled: Bool = false
+  @Published public var bandName: String = ""
+  @Published public var hwAlcEnabled: Bool = false
+  @Published public var inhibit: Bool = false
+  @Published public var rcaTxReqEnabled: Bool = false
+  @Published public var rfPower: Int = 0
+  @Published public var tunePower: Int = 0
+  @Published public var tx1Enabled: Bool = false
+  @Published public var tx2Enabled: Bool = false
+  @Published public var tx3Enabled: Bool  = false
   
-  public enum BandSettingToken: String {
+  public enum Property: String {
     case accTxEnabled       = "acc_tx_enabled"
     case accTxReqEnabled    = "acc_txreq_enable"
     case bandName           = "band_name"
@@ -99,86 +59,16 @@ public struct BandSetting: Identifiable {
     case tx3Enabled         = "tx3_enabled"
   }
   
-  // ------------------------------------------------------------------------------
-  // MARK: - Initialization
-  
-  public init(_ id: BandId) { self.id = id }
-  
   // ----------------------------------------------------------------------------
-  // MARK: - Public Static methods
-  
-  /// Parse a BandSetting status message
-  /// - Parameters:
-  ///   - properties:     a KeyValuesArray of BandSetting properties
-  ///   - inUse:          false = "to be deleted"
-  public static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    // get the Id
-    if let id = properties[0].key.objectId {
-      // is the object in use?
-      if inUse {
-        // YES, does it exist?
-        if Model.shared.bandSettings[id: id] == nil {
-          // NO, create a new BandSetting & add it to the BandSettingCollection
-          Model.shared.bandSettings[id: id] = BandSetting(id)
-          log("BandSetting \(id.hex): added", .debug, #function, #file, #line)
-        }
-        // pass the remaining key values to the BandSetting for parsing
-        Model.shared.bandSettings[id: id]?.parseProperties(Array(properties.dropFirst(1)) )
-      } else {
-        // NO, does it exist?
-        if Model.shared.bandSettings[id: id] != nil {
-          // YES, remove it
-          remove(id)
-        }
-      }
-    }
-  }
-  
-  public static func setProperty(radio: Radio, _ id: BandId, property: BandSettingToken, value: Any) {
-    // FIXME: add commands
-  }
-  
-//  public static func getProperty( _ id: BandId, property: BandSettingToken) -> Any? {
-//    switch property {
-//
-//    case .accTxEnabled:     return Model.shared.bandSettings[id: id]!.accTxEnabled as Any
-//    case .accTxReqEnabled:  return Model.shared.bandSettings[id: id]!.accTxReqEnabled as Any
-//    case .bandName:         return Model.shared.bandSettings[id: id]!.bandName as Any
-//    case .hwAlcEnabled:     return Model.shared.bandSettings[id: id]!.hwAlcEnabled as Any
-//    case .inhibit:          return Model.shared.bandSettings[id: id]!.inhibit as Any
-//    case .rcaTxReqEnabled:  return Model.shared.bandSettings[id: id]!.rcaTxReqEnabled as Any
-//    case .rfPower:          return Model.shared.bandSettings[id: id]!.rfPower as Any
-//    case .tunePower:        return Model.shared.bandSettings[id: id]!.tunePower as Any
-//    case .tx1Enabled:       return Model.shared.bandSettings[id: id]!.tx1Enabled as Any
-//    case .tx2Enabled:       return Model.shared.bandSettings[id: id]!.tx2Enabled as Any
-//    case .tx3Enabled:       return Model.shared.bandSettings[id: id]!.tx3Enabled as Any
-//    }
-//  }
-  
-  /// Remove the specified BandSetting
-  /// - Parameter id:     an AmplifierId
-  public static func remove(_ id: BandId) {
-    Model.shared.bandSettings.remove(id: id)
-    log("BandSetting \(id.hex): removed", .debug, #function, #file, #line)
-  }
-  
-  /// Remove all BandSettings
-  public static func removeAll() {
-    for bandSetting in Model.shared.bandSettings {
-      remove(bandSetting.id)
-    }
-  }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Private Static methods
+  // MARK: - Public Instance methods
   
   /// Parse BandSetting key/value pairs
   /// - Parameter properties:       a KeyValuesArray
-  private mutating func parseProperties(_ properties: KeyValuesArray) {
+  public func parse(_ properties: KeyValuesArray) async {
     // process each key/value pair, <key=value>
     for property in properties {
       // check for unknown Keys
-      guard let token = BandSettingToken(rawValue: property.key) else {
+      guard let token = Property(rawValue: property.key) else {
         // log it and ignore the Key
         log("BandSetting \(id) unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
@@ -206,16 +96,4 @@ public struct BandSetting: Identifiable {
       }
     }
   }
-  
-  /// Send a command to Set a BandSetting property
-  /// - Parameters:
-  ///   - radio:      a Radio instance
-  ///   - id:         the Id for the specified BandSetting
-  ///   - token:      the parse token
-  ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ id: BandId, _ token: BandSettingToken, _ value: Any) {
-    // FIXME: add commands
-  }
 }
-
-

@@ -124,14 +124,6 @@ extension Radio {
     case ip
     case netmask
   }
-  enum StreamTypeToken: String {
-    case daxIq                    = "dax_iq"
-    case daxMic                   = "dax_mic"
-    case daxRx                    = "dax_rx"
-    case daxTx                    = "dax_tx"
-    case remoteRx                 = "remote_audio_rx"
-    case remoteTx                 = "remote_audio_tx"
-  }
   enum VersionToken: String {
     case fpgaMb                   = "fpga-mb"
     case psocMbPa100              = "psoc-mbpa100"

@@ -12,32 +12,41 @@ import Shared
 // import LogProxy
 import Vita
 
-// DaxRxAudioStream Class implementation
+// DaxRxAudioStream
 //      creates a DaxRxAudioStream instance to be used by a Client to support the
 //      processing of a stream of Audio from the Radio to the client. DaxRxAudioStream
-//      structs are added / removed by the incoming TCP messages. DaxRxAudioStream
-//      objects periodically receive Audio in a UDP stream. They are collected
+//      instances are added / removed by the incoming TCP messages. DaxRxAudioStream
+//      instances periodically receive Audio in a UDP stream. They are collected
 //      in the Model.daxRxAudioStreams collection.
+@MainActor
+public class DaxRxAudioStream: Identifiable, Equatable, ObservableObject {
+  // Equality
+  public nonisolated static func == (lhs: DaxRxAudioStream, rhs: DaxRxAudioStream) -> Bool {
+    lhs.id == rhs.id
+  }
 
-public struct DaxRxAudioStream: Identifiable {
+  // ------------------------------------------------------------------------------
+  // MARK: - Initialization
+  
+  public init(_ id: DaxRxAudioStreamId) { self.id = id }
+  
   // ------------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var id: DaxRxAudioStreamId
-  public internal(set) var initialized = false
-  public internal(set) var isStreaming = false
+  public let id: DaxRxAudioStreamId
+  public var initialized = false
+  public var isStreaming = false
 
-  public internal(set) var clientHandle: Handle = 0
-  public internal(set) var ip = ""
-  public internal(set) var slice: Slice?
-  
-  public internal(set) var daxChannel = 0
-  public internal(set) var rxGain = 0
+  @Published public var clientHandle: Handle = 0
+  @Published public var ip = ""
+  @Published public var slice: Slice?
+  @Published public var daxChannel = 0
+  @Published public var rxGain = 0
   
   public var delegate: StreamHandler?
   public private(set) var rxLostPacketCount = 0
 
-  public enum DaxRxAudioStreamToken: String {
+  public enum Property: String {
     case clientHandle   = "client_handle"
     case daxChannel     = "dax_channel"
     case ip
@@ -52,86 +61,16 @@ public struct DaxRxAudioStream: Identifiable {
   private var _rxLostPacketCount  = 0
   private var _rxSequenceNumber   = -1
   
-  // ------------------------------------------------------------------------------
-  // MARK: - Initialization
-  
-  public init(_ id: DaxRxAudioStreamId) { self.id = id }
-  
   // ----------------------------------------------------------------------------
-  // MARK: - Private Command methods
+  // MARK: - Public Instance methods
   
-  //    private func audioStreamCmd(_ tokenString: String, _ value: Any) {
-  //        _api.send("audio stream \(id.hex) slice \(slice!.id) " + tokenString + " \(value)")
-  //    }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Public Static methods
-  
-  /// Parse an AudioStream status message
-  /// - Parameters:
-  ///   - keyValues:      a KeyValuesArray
-  ///   - radio:          the current Radio class
-  ///   - queue:          a parse Queue for the object
-  ///   - inUse:          false = "to be deleted"
-  public static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    // get the Id
-    if let id =  properties[0].key.streamId {
-      // is the object in use?
-      if inUse {
-        // YES, does it exist?
-        if Model.shared.daxRxAudioStreams[id: id] == nil {
-          // NO, create a new object & add it to the collection
-          Model.shared.daxRxAudioStreams[id: id] = DaxRxAudioStream(id)
-          log("DaxRxAudioStream \(id.hex): added", .debug, #function, #file, #line)
-        }
-        // pass the remaining key values for parsing
-        Model.shared.daxRxAudioStreams[id: id]?.parseProperties( Array(properties.dropFirst(1)) )
-        
-      } else {
-        // NO, does it exist?
-        if Model.shared.daxRxAudioStreams[id: id] != nil {
-          // YES, remove it
-          remove(id)
-        }
-      }
-    }
-  }
-
-  /// Set a property
-  /// - Parameters:
-  ///   - radio:      the current radio
-  ///   - id:         a DaxRxAudioStream Id
-  ///   - property:   a DaxRxAudioStream Token
-  ///   - value:      the new value
-  public static func setProperty(radio: Radio, _ id: DaxRxAudioStreamId, property: DaxRxAudioStreamToken, value: Any) {
-    // FIXME: add commands
-  }
-
-  /// Remove the specified DaxRxAudioStream
-  /// - Parameter id:     a DaxRxAudioStreamId
-  public static func remove(_ id: DaxRxAudioStreamId) {
-    Model.shared.daxRxAudioStreams.remove(id: id)
-    log("DaxRxAudioStream \(id.hex): removed", .debug, #function, #file, #line)
-  }
-  
-  /// Remove all DaxRxAudioStream
-  public static func removeAll() {
-    for daxRxAudioStream in Model.shared.daxRxAudioStreams {
-      remove(daxRxAudioStream.id)
-    }
-  }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Private Static methods
-  
-  /// Parse Audio Stream key/value pairs
+  /// Parse key/value pairs
   /// - Parameter properties:       a KeyValuesArray
-  private mutating func parseProperties(_ properties: KeyValuesArray) {
-    // process each key/value pair, <key=value>
+  public func parse(_ properties: KeyValuesArray) async {
     for property in properties {
       // check for unknown keys
-      guard let token = DaxRxAudioStreamToken(rawValue: property.key) else {
-        // log it and ignore the Key
+      guard let token = Property(rawValue: property.key) else {
+        // unknown, log it and ignore the Key
         log("DaxRxAudioStream, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
       }
@@ -165,6 +104,27 @@ public struct DaxRxAudioStream: Identifiable {
 
     }
   }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  /// Set a property
+  /// - Parameters:
+  ///   - radio:      the current radio
+  ///   - id:         a DaxRxAudioStream Id
+  ///   - property:   a DaxRxAudioStream Token
+  ///   - value:      the new value
+  public static func setProperty(radio: Radio, _ id: DaxRxAudioStreamId, property: Property, value: Any) {
+    // FIXME: add commands
+  }
+
   
   /// Send a command to Set a DaxRxAudioStream property
   /// - Parameters:
@@ -172,7 +132,7 @@ public struct DaxRxAudioStream: Identifiable {
   ///   - id:         the Id for the specified DaxRxAudioStream
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ id: DaxRxAudioStreamId, _ token: DaxRxAudioStreamToken, _ value: Any) {
+  private static func sendCommand(_ radio: Radio, _ id: DaxRxAudioStreamId, _ token: Property, _ value: Any) {
     // FIXME: add commands
   }
 
@@ -183,7 +143,7 @@ public struct DaxRxAudioStream: Identifiable {
   /// - Parameters:
   ///   - vita:       a Vita struct
   ///
-  public mutating func vitaProcessor(_ vita: Vita) {
+  public func vitaProcessor(_ vita: Vita) {
     if isStreaming == false {
       isStreaming = true
       // log the start of the stream

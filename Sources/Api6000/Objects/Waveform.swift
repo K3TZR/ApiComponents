@@ -10,32 +10,32 @@ import Foundation
 
 import Shared
 
-// Waveform Class implementation
+// Waveform
 //
 //      creates a Waveform instance to be used by a Client to support the
-//      processing of installed Waveform functions. Waveform structs are added,
-//      removed and updated by the incoming TCP messages.
-
-public struct Waveform {
+//      processing of installed Waveform functions. The Waveform list is
+//      updated by the incoming TCP messages.
+@MainActor
+public class Waveform: ObservableObject {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var waveformList = ""
+  @Published public var waveformList = ""
   
-  public enum WaveformToken: String {
+  public enum Property: String {
     case waveformList = "installed_list"
   }
   
   // ----------------------------------------------------------------------------
-  // MARK: - Public Static methods
+  // MARK: - Public Instance methods
   
   /// Parse a Waveform status message
   /// - Parameter properties:       a KeyValuesArray
-  public static func parseProperties(_ properties: KeyValuesArray) {
+  public func parse(_ properties: KeyValuesArray) async {
     // process each key/value pair, <key=value>
     for property in properties {
       // Check for Unknown Keys
-      guard let token = WaveformToken(rawValue: property.key)  else {
+      guard let token = Property(rawValue: property.key)  else {
         // log it and ignore the Key
         log("Waveform, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
@@ -43,7 +43,7 @@ public struct Waveform {
       // Known tokens, in alphabetical order
       switch token {
         
-      case .waveformList:   Model.shared.waveform.waveformList = property.value
+      case .waveformList:   waveformList = property.value
       }
     }
   }

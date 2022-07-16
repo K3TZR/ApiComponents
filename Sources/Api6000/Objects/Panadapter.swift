@@ -19,12 +19,25 @@ import Vita
 //       incoming TCP messages. Panadapter objects periodically receive Panadapter
 //       data in a UDP stream. They are collected in the PanadaptersCollection.
 
+@MainActor
 public class Panadapter: Equatable, Identifiable, ObservableObject {
   // Equality
-  public static func == (lhs: Panadapter, rhs: Panadapter) -> Bool {
+  public nonisolated static func == (lhs: Panadapter, rhs: Panadapter) -> Bool {
     lhs.id == rhs.id
   }
   
+  // ------------------------------------------------------------------------------
+  // MARK: - Initialization
+  
+  public init(_ id: PanadapterId) {
+    self.id = id
+    
+    // allocate dataframes
+    for _ in 0..<_numberOfFrames {
+      _frames.append(PanadapterFrame(frameSize: Panadapter.kMaxBins))
+    }
+  }
+
   // ----------------------------------------------------------------------------
   // MARK: - Static properties
   
@@ -34,53 +47,53 @@ public class Panadapter: Equatable, Identifiable, ObservableObject {
   // MARK: - Public properties
   
   public let id: PanadapterId
-  public internal(set) var initialized: Bool = false
-  public internal(set) var isStreaming: Bool = false
+  public var initialized: Bool = false
+  public var isStreaming: Bool = false
 
-  public internal(set) var antList = [String]()
-  public internal(set) var clientHandle: Handle = 0
-  public internal(set) var dbmValues = [LegendValue]()
-  public internal(set) var delegate: StreamHandler?
-  public internal(set) var fillLevel: Int = 0
-  public internal(set) var freqValues = [LegendValue]()
-  public internal(set) var maxBw: Hz = 0
-  public internal(set) var minBw: Hz = 0
-  public internal(set) var preamp = ""
-  public internal(set) var rfGainHigh = 0
-  public internal(set) var rfGainLow = 0
-  public internal(set) var rfGainStep = 0
-  public internal(set) var rfGainValues = ""
-  public internal(set) var waterfallId: UInt32 = 0
-  public internal(set) var wide = false
-  public internal(set) var wnbUpdating = false
-  public internal(set) var xvtrLabel = ""
+  @Published public var antList = [String]()
+  @Published public var clientHandle: Handle = 0
+  @Published public var dbmValues = [LegendValue]()
+  @Published public var delegate: StreamHandler?
+  @Published public var fillLevel: Int = 0
+  @Published public var freqValues = [LegendValue]()
+  @Published public var maxBw: Hz = 0
+  @Published public var minBw: Hz = 0
+  @Published public var preamp = ""
+  @Published public var rfGainHigh = 0
+  @Published public var rfGainLow = 0
+  @Published public var rfGainStep = 0
+  @Published public var rfGainValues = ""
+  @Published public var waterfallId: UInt32 = 0
+  @Published public var wide = false
+  @Published public var wnbUpdating = false
+  @Published public var xvtrLabel = ""
   
-  public var average: Int = 0
+  @Published public var average: Int = 0
   @Published public var band: String = ""
   // FIXME: Where does autoCenter come from?
-  public var bandwidth: Hz = 0
-  public var bandZoomEnabled: Bool  = false
-  public var center: Hz = 0
-  public var daxIqChannel: Int = 0
-  public var fps: Int = 0
-  public var loggerDisplayEnabled: Bool = false
-  public var loggerDisplayIpAddress: String = ""
-  public var loggerDisplayPort: Int = 0
-  public var loggerDisplayRadioNumber: Int = 0
-  public var loopAEnabled: Bool = false
-  public var loopBEnabled: Bool = false
-  public var maxDbm: CGFloat = 0
-  public var minDbm: CGFloat = 0
-  public var rfGain: Int = 0
-  public var rxAnt: String = ""
-  public var segmentZoomEnabled: Bool = false
-  public var weightedAverageEnabled: Bool = false
-  public var wnbEnabled: Bool = false
-  public var wnbLevel: Int = 0
-  public var xPixels: CGFloat = 0
-  public var yPixels: CGFloat = 0
+  @Published public var bandwidth: Hz = 0
+  @Published public var bandZoomEnabled: Bool  = false
+  @Published public var center: Hz = 0
+  @Published public var daxIqChannel: Int = 0
+  @Published public var fps: Int = 0
+  @Published public var loggerDisplayEnabled: Bool = false
+  @Published public var loggerDisplayIpAddress: String = ""
+  @Published public var loggerDisplayPort: Int = 0
+  @Published public var loggerDisplayRadioNumber: Int = 0
+  @Published public var loopAEnabled: Bool = false
+  @Published public var loopBEnabled: Bool = false
+  @Published public var maxDbm: CGFloat = 0
+  @Published public var minDbm: CGFloat = 0
+  @Published public var rfGain: Int = 0
+  @Published public var rxAnt: String = ""
+  @Published public var segmentZoomEnabled: Bool = false
+  @Published public var weightedAverageEnabled: Bool = false
+  @Published public var wnbEnabled: Bool = false
+  @Published public var wnbLevel: Int = 0
+  @Published public var xPixels: CGFloat = 0
+  @Published public var yPixels: CGFloat = 0
   
-  public enum PanadapterToken : String {
+  public enum Property: String {
     // on Panadapter
     case antList                    = "ant_list"
     case average
@@ -162,123 +175,17 @@ public class Panadapter: Equatable, Identifiable, ObservableObject {
   private var _dbmFormat = "%3.0f"
   private var _freqStep: CGFloat = 10_000
   private var _freqFormat = "%2.3f"
-  
-  // ------------------------------------------------------------------------------
-  // MARK: - Initialization
-  
-  public init(_ id: PanadapterId) {
-    self.id = id
-    
-    // allocate dataframes
-    for _ in 0..<_numberOfFrames {
-      _frames.append(PanadapterFrame(frameSize: Panadapter.kMaxBins))
-    }
-  }
 
   // ----------------------------------------------------------------------------
-  // MARK: - Public Static methods
+  // MARK: - Public Instance methods
   
-  /// Parse a Panadapter status message
-  /// - Parameters:
-  ///   - properties:      a KeyValuesArray
-  ///   - inUse:          false = "to be deleted"
-  public static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    // get the Id
-    if let id =  properties[1].key.streamId {
-      // is the object in use?
-      if inUse {
-        // YES, does it exist?
-        if Model.shared.panadapters[id: id] == nil {
-          // create new, add it & notify
-          Model.shared.panadapters[id: id] = Panadapter(id)
-          log("Panadapter \(id.hex): added", .debug, #function, #file, #line)
-        }
-        // pass the remaining key values for parsing
-        Task {
-          await Model.shared.panadapters[id: id]?.parseProperties( Array(properties.dropFirst(2)) )
-        }
-        
-      } else {
-        // NO, does it exist?
-        if Model.shared.panadapters[id: id] != nil {
-          // YES, remove & notify
-          remove(id)
-        }
-      }
-    }
-  }
-
-  public static func setPanadapterProperty(radio: Radio, id: PanadapterId, property: PanadapterToken, value: Any) {
-    switch property {
-    case .antList:                sendCommand( radio, id, .antList, value)
-    case .average:                sendCommand( radio, id, .average, value)
-    case .band:                   sendCommand( radio, id, .band, value)
-    case .bandwidth:              sendCommand( radio, id, .bandwidth, (value as! Hz).hzToMhz)
-    case .bandZoomEnabled:        sendCommand( radio, id, .bandZoomEnabled, (value as! Bool).as1or0)
-    case .center:                 sendCommand( radio, id, .center, (value as! Hz).hzToMhz)
-    case .clientHandle:           sendCommand( radio, id, .clientHandle, value)
-    case .daxIq:                  sendCommand( radio, id, .daxIqChannel, value)
-    case .daxIqChannel:           sendCommand( radio, id, .daxIqChannel, value)
-    case .fps:                    sendCommand( radio, id, .fps, value)
-    case .loopAEnabled:           sendCommand( radio, id, .loopAEnabled, (value as! Bool).as1or0)
-    case .loopBEnabled:           sendCommand( radio, id, .loopBEnabled, (value as! Bool).as1or0)
-    case .maxBw:                  sendCommand( radio, id, .maxBw, (value as! Hz).hzToMhz)
-    case .maxDbm:                 sendCommand( radio, id, .maxDbm, value)
-    case .minBw:                  sendCommand( radio, id, .minBw, (value as! Hz).hzToMhz)
-    case .minDbm:                 sendCommand( radio, id, .minDbm, value)
-    case .preamp:                 sendCommand( radio, id, .preamp, value)
-    case .rfGain:                 sendCommand( radio, id, .rfGain, value)
-    case .rxAnt:                  sendCommand( radio, id, .rxAnt, value)
-    case .segmentZoomEnabled:     sendCommand( radio, id, .segmentZoomEnabled, (value as! Bool).as1or0)
-    case .waterfallId:            sendCommand( radio, id, .waterfallId, value)
-    case .wide:                   sendCommand( radio, id, .wide, (value as! Bool).as1or0)
-    case .weightedAverageEnabled: sendCommand( radio, id, .weightedAverageEnabled, (value as! Bool).as1or0)
-    case .wnbEnabled:             sendCommand( radio, id, .wnbEnabled, (value as! Bool).as1or0)
-    case .wnbLevel:               sendCommand( radio, id, .wnbLevel, value)
-    case .wnbUpdating:            sendCommand( radio, id, .wnbUpdating, (value as! Bool).as1or0)
-    case .xPixels:                sendCommand( radio, id, "xpixels", value)
-    case .xvtrLabel:              sendCommand( radio, id, .xvtrLabel, value)
-    case .yPixels:                sendCommand( radio, id, "ypixels", value)
-    
-    case .available, .capacity, .daxIqRate:                         break // ignored by Panadapter
-    case .n1mmSpectrumEnable, .n1mmAddress, .n1mmPort, .n1mmRadio:  break // not sent in status messages
-    }
-
-    Task {
-      switch property {
-//      case .band:
-//        await Model.shared.panadapters[id: id]?.parseProperties( [(key: property.rawValue, value: "\((value as! Bool).as1or0)")] )
-      
-      default:
-        await Model.shared.panadapters[id: id]?.parseProperties( [(key: property.rawValue, value: "\(value)")] )
-      }
-    }  }
-
-  /// Remove the specified Panadapter
-  /// - Parameter id:     a PanadapterId
-  public static func remove(_ id: PanadapterId) {
-    Model.shared.panadapters.remove(id: id)
-    log("Panadapter \(id.hex): removed", .debug, #function, #file, #line)
-  }
-  
-  /// Remove all Panadapters
-  public static func removeAll() {
-    for panadapter in Model.shared.panadapters {
-      remove(panadapter.id)
-    }
-  }
-
-  // ----------------------------------------------------------------------------
-  // MARK: - Private Static methods
-  
-  /// Parse Panadapter key/value pairs
+  /// Parse key/value pairs
   /// - Parameter properties:       a KeyValuesArray
-  @MainActor private func parseProperties(_ properties: KeyValuesArray) {
-    // process each key/value pair, <key=value>
+  public func parse(_ properties: KeyValuesArray) async {
     for property in properties {
       // check for unknown Keys
-      guard let token = PanadapterToken(rawValue: property.key) else {
-        // log it and ignore the Key
+      guard let token = Property(rawValue: property.key) else {
+        // unknown, log it and ignore the Key
         log("Panadapter \(id.hex) unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
       }
@@ -323,7 +230,61 @@ public class Panadapter: Equatable, Identifiable, ObservableObject {
       log("Panadapter \(id.hex): initialized center = \(center.hzToMhz), bandwidth = \(bandwidth.hzToMhz)", .debug, #function, #file, #line)
     }
   }
+
   
+  
+  
+  
+  
+  
+  
+  public static func setPanadapterProperty(radio: Radio, id: PanadapterId, property: Property, value: Any) {
+    switch property {
+    case .antList:                sendCommand( radio, id, .antList, value)
+    case .average:                sendCommand( radio, id, .average, value)
+    case .band:                   sendCommand( radio, id, .band, value)
+    case .bandwidth:              sendCommand( radio, id, .bandwidth, (value as! Hz).hzToMhz)
+    case .bandZoomEnabled:        sendCommand( radio, id, .bandZoomEnabled, (value as! Bool).as1or0)
+    case .center:                 sendCommand( radio, id, .center, (value as! Hz).hzToMhz)
+    case .clientHandle:           sendCommand( radio, id, .clientHandle, value)
+    case .daxIq:                  sendCommand( radio, id, .daxIqChannel, value)
+    case .daxIqChannel:           sendCommand( radio, id, .daxIqChannel, value)
+    case .fps:                    sendCommand( radio, id, .fps, value)
+    case .loopAEnabled:           sendCommand( radio, id, .loopAEnabled, (value as! Bool).as1or0)
+    case .loopBEnabled:           sendCommand( radio, id, .loopBEnabled, (value as! Bool).as1or0)
+    case .maxBw:                  sendCommand( radio, id, .maxBw, (value as! Hz).hzToMhz)
+    case .maxDbm:                 sendCommand( radio, id, .maxDbm, value)
+    case .minBw:                  sendCommand( radio, id, .minBw, (value as! Hz).hzToMhz)
+    case .minDbm:                 sendCommand( radio, id, .minDbm, value)
+    case .preamp:                 sendCommand( radio, id, .preamp, value)
+    case .rfGain:                 sendCommand( radio, id, .rfGain, value)
+    case .rxAnt:                  sendCommand( radio, id, .rxAnt, value)
+    case .segmentZoomEnabled:     sendCommand( radio, id, .segmentZoomEnabled, (value as! Bool).as1or0)
+    case .waterfallId:            sendCommand( radio, id, .waterfallId, value)
+    case .wide:                   sendCommand( radio, id, .wide, (value as! Bool).as1or0)
+    case .weightedAverageEnabled: sendCommand( radio, id, .weightedAverageEnabled, (value as! Bool).as1or0)
+    case .wnbEnabled:             sendCommand( radio, id, .wnbEnabled, (value as! Bool).as1or0)
+    case .wnbLevel:               sendCommand( radio, id, .wnbLevel, value)
+    case .wnbUpdating:            sendCommand( radio, id, .wnbUpdating, (value as! Bool).as1or0)
+    case .xPixels:                sendCommand( radio, id, "xpixels", value)
+    case .xvtrLabel:              sendCommand( radio, id, .xvtrLabel, value)
+    case .yPixels:                sendCommand( radio, id, "ypixels", value)
+    
+    case .available, .capacity, .daxIqRate:                         break // ignored by Panadapter
+    case .n1mmSpectrumEnable, .n1mmAddress, .n1mmPort, .n1mmRadio:  break // not sent in status messages
+    }
+
+//    Task {
+//      switch property {
+//      case .band:
+//        await Model.shared.panadapters[id: id]?.parseProperties( [(key: property.rawValue, value: "\((value as! Bool).as1or0)")] )
+      
+//      default:
+//        await Model.shared.panadapters[id: id]?.parseProperties( [(key: property.rawValue, value: "\(value)")] )
+//      }
+//    }
+  }
+
   // ----------------------------------------------------------------------------
   // MARK: - Private methods
   
@@ -341,9 +302,9 @@ public class Panadapter: Equatable, Identifiable, ObservableObject {
     }
     // parse out the values
     let rfGainInfo = reply.valuesArray( delimiter: "," )
-    Model.shared.panadapters[id: id]!.rfGainLow = rfGainInfo[0].iValue
-    Model.shared.panadapters[id: id]!.rfGainHigh = rfGainInfo[1].iValue
-    Model.shared.panadapters[id: id]!.rfGainStep = rfGainInfo[2].iValue
+    rfGainLow = rfGainInfo[0].iValue
+    rfGainHigh = rfGainInfo[1].iValue
+    rfGainStep = rfGainInfo[2].iValue
   }
   
   // ----------------------------------------------------------------------------
@@ -355,7 +316,7 @@ public class Panadapter: Equatable, Identifiable, ObservableObject {
   ///   - id:         the Id for the specified Waterfall
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ id: PanadapterId, _ token: PanadapterToken, _ value: Any) {
+  private static func sendCommand(_ radio: Radio, _ id: PanadapterId, _ token: Property, _ value: Any) {
       radio.send("display panafall set " + "\(id.hex) " + token.rawValue + "=\(value)")
   }
 
@@ -381,8 +342,8 @@ public class Panadapter: Equatable, Identifiable, ObservableObject {
   /// - Parameters:
   ///   - vita:        a Vita struct
   public func vitaProcessor(_ vita: Vita, _ testMode: Bool = false) {
-    if Model.shared.panadapters[id: vita.streamId]!.isStreaming == false {
-      Model.shared.panadapters[id: vita.streamId]!.isStreaming = true
+    if isStreaming == false {
+      isStreaming = true
       // log the start of the stream
       log("Panadapter stream \(vita.streamId.hex): started", .info, #function, #file, #line)
     }

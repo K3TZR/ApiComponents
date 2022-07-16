@@ -16,61 +16,61 @@ import Shared
 ///      processing of the Transmit-related activities. Transmit structs are added,
 ///      removed and updated by the incoming TCP messages.
 ///
-//public final class Transmit: ObservableObject {
-public struct Transmit {
+@MainActor
+public final class Transmit: ObservableObject {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var initialized = false
+  public var initialized = false
   
-  public internal(set) var carrierLevel = 0
-  public internal(set) var companderEnabled = false
-  public internal(set) var companderLevel = 0
-  public internal(set) var cwBreakInDelay = 0
-  public internal(set) var cwBreakInEnabled = false
-  public internal(set) var cwIambicEnabled = false
-  public internal(set) var cwIambicMode = 0
-  public internal(set) var cwlEnabled = false
-  public internal(set) var cwPitch = 0
-  public internal(set) var cwSidetoneEnabled = false
-  public internal(set) var cwSpeed = 0
-  public internal(set) var cwSwapPaddles = false
-  public internal(set) var cwSyncCwxEnabled = false
-  public internal(set) var daxEnabled = false
-  public internal(set) var frequency: Hz = 0
-  public internal(set) var hwAlcEnabled = false
-  public internal(set) var inhibit = false
-  public internal(set) var maxPowerLevel = 0
-  public internal(set) var metInRxEnabled = false
-  public internal(set) var micAccEnabled = false
-  public internal(set) var micBiasEnabled = false
-  public internal(set) var micBoostEnabled = false
-  public internal(set) var micLevel = 0
-  public internal(set) var micSelection = ""
-  public internal(set) var rawIqEnabled = false
-  public internal(set) var rfPower = 0
-  public internal(set) var speechProcessorEnabled = false
-  public internal(set) var speechProcessorLevel = 0
-  public internal(set) var tune = false
-  public internal(set) var tunePower = 0
-  public internal(set) var txAntenna = ""
-  public internal(set) var txFilterChanges = false
-  public internal(set) var txFilterHigh = 0
-  public internal(set) var txFilterLow = 0
-  public internal(set) var txInWaterfallEnabled = false
-  public internal(set) var txMonitorAvailable = false
-  public internal(set) var txMonitorEnabled = false
-  public internal(set) var txMonitorGainCw = 0
-  public internal(set) var txMonitorGainSb = 0
-  public internal(set) var txMonitorPanCw = 0
-  public internal(set) var txMonitorPanSb = 0
-  public internal(set) var txRfPowerChanges = false
-  public internal(set) var txSliceMode = ""
-  public internal(set) var voxEnabled = false
-  public internal(set) var voxDelay = 0
-  public internal(set) var voxLevel = 0
+  @Published public var carrierLevel = 0
+  @Published public var companderEnabled = false
+  @Published public var companderLevel = 0
+  @Published public var cwBreakInDelay = 0
+  @Published public var cwBreakInEnabled = false
+  @Published public var cwIambicEnabled = false
+  @Published public var cwIambicMode = 0
+  @Published public var cwlEnabled = false
+  @Published public var cwPitch = 0
+  @Published public var cwSidetoneEnabled = false
+  @Published public var cwSpeed = 0
+  @Published public var cwSwapPaddles = false
+  @Published public var cwSyncCwxEnabled = false
+  @Published public var daxEnabled = false
+  @Published public var frequency: Hz = 0
+  @Published public var hwAlcEnabled = false
+  @Published public var inhibit = false
+  @Published public var maxPowerLevel = 0
+  @Published public var metInRxEnabled = false
+  @Published public var micAccEnabled = false
+  @Published public var micBiasEnabled = false
+  @Published public var micBoostEnabled = false
+  @Published public var micLevel = 0
+  @Published public var micSelection = ""
+  @Published public var rawIqEnabled = false
+  @Published public var rfPower = 0
+  @Published public var speechProcessorEnabled = false
+  @Published public var speechProcessorLevel = 0
+  @Published public var tune = false
+  @Published public var tunePower = 0
+  @Published public var txAntenna = ""
+  @Published public var txFilterChanges = false
+  @Published public var txFilterHigh = 0
+  @Published public var txFilterLow = 0
+  @Published public var txInWaterfallEnabled = false
+  @Published public var txMonitorAvailable = false
+  @Published public var txMonitorEnabled = false
+  @Published public var txMonitorGainCw = 0
+  @Published public var txMonitorGainSb = 0
+  @Published public var txMonitorPanCw = 0
+  @Published public var txMonitorPanSb = 0
+  @Published public var txRfPowerChanges = false
+  @Published public var txSliceMode = ""
+  @Published public var voxEnabled = false
+  @Published public var voxDelay = 0
+  @Published public var voxLevel = 0
   
-  public enum TransmitToken: String {
+  public enum Property: String {
     case amCarrierLevel           = "am_carrier_level"              // "am_carrier"
     case companderEnabled         = "compander"
     case companderLevel           = "compander_level"
@@ -118,30 +118,17 @@ public struct Transmit {
     case voxDelay                 = "vox_delay"
     case voxLevel                 = "vox_level"
   }
-  
+
   // ----------------------------------------------------------------------------
-  // MARK: - Private methods
-  
-  //    private func txFilterHighLimits(_ low: Int, _ high: Int) -> Int {
-  //        let newValue = ( high < low + 50 ? low + 50 : high )
-  //        return newValue > 10_000 ? 10_000 : newValue
-  //    }
-  //
-  //    private func txFilterLowLimits(_ low: Int, _ high: Int) -> Int {
-  //        let newValue = ( low > high - 50 ? high - 50 : low )
-  //        return newValue < 0 ? 0 : newValue
-  //    }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Public Static methods
+  // MARK: - Public Instance methods
   
   /// Parse a Transmit status message
   /// - Parameter properties:       a KeyValuesArray
-  public static func parseProperties(_ properties: KeyValuesArray) {
+  public func parse(_ properties: KeyValuesArray) async {
     // process each key/value pair, <key=value>
     for property in properties {
       // Check for Unknown Keys
-      guard let token = TransmitToken(rawValue: property.key)  else {
+      guard let token = Property(rawValue: property.key)  else {
         // log it and ignore the Key
         log("Transmit, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
@@ -149,61 +136,69 @@ public struct Transmit {
       // Known tokens, in alphabetical order
       switch token {
         
-      case .amCarrierLevel:         Model.shared.transmit.carrierLevel = property.value.iValue
-      case .companderEnabled:       Model.shared.transmit.companderEnabled = property.value.bValue
-      case .companderLevel:         Model.shared.transmit.companderLevel = property.value.iValue
-      case .cwBreakInEnabled:       Model.shared.transmit.cwBreakInEnabled = property.value.bValue
-      case .cwBreakInDelay:         Model.shared.transmit.cwBreakInDelay = property.value.iValue
-      case .cwIambicEnabled:        Model.shared.transmit.cwIambicEnabled = property.value.bValue
-      case .cwIambicMode:           Model.shared.transmit.cwIambicMode = property.value.iValue
-      case .cwlEnabled:             Model.shared.transmit.cwlEnabled = property.value.bValue
-      case .cwPitch:                Model.shared.transmit.cwPitch = property.value.iValue
-      case .cwSidetoneEnabled:      Model.shared.transmit.cwSidetoneEnabled = property.value.bValue
-      case .cwSpeed:                Model.shared.transmit.cwSpeed = property.value.iValue
-      case .cwSwapPaddles:          Model.shared.transmit.cwSwapPaddles = property.value.bValue
-      case .cwSyncCwxEnabled:       Model.shared.transmit.cwSyncCwxEnabled = property.value.bValue
-      case .daxEnabled:             Model.shared.transmit.daxEnabled = property.value.bValue
-      case .frequency:              Model.shared.transmit.frequency = property.value.mhzToHz
-      case .hwAlcEnabled:           Model.shared.transmit.hwAlcEnabled = property.value.bValue
-      case .inhibit:                Model.shared.transmit.inhibit = property.value.bValue
-      case .maxPowerLevel:          Model.shared.transmit.maxPowerLevel = property.value.iValue
-      case .metInRxEnabled:         Model.shared.transmit.metInRxEnabled = property.value.bValue
-      case .micAccEnabled:          Model.shared.transmit.micAccEnabled = property.value.bValue
-      case .micBoostEnabled:        Model.shared.transmit.micBoostEnabled = property.value.bValue
-      case .micBiasEnabled:         Model.shared.transmit.micBiasEnabled = property.value.bValue
-      case .micLevel:               Model.shared.transmit.micLevel = property.value.iValue
-      case .micSelection:           Model.shared.transmit.micSelection = property.value
-      case .rawIqEnabled:           Model.shared.transmit.rawIqEnabled = property.value.bValue
-      case .rfPower:                Model.shared.transmit.rfPower = property.value.iValue
-      case .speechProcessorEnabled: Model.shared.transmit.speechProcessorEnabled = property.value.bValue
-      case .speechProcessorLevel:   Model.shared.transmit.speechProcessorLevel = property.value.iValue
-      case .txAntenna:              Model.shared.transmit.txAntenna = property.value
-      case .txFilterChanges:        Model.shared.transmit.txFilterChanges = property.value.bValue
-      case .txFilterHigh:           Model.shared.transmit.txFilterHigh = property.value.iValue
-      case .txFilterLow:            Model.shared.transmit.txFilterLow = property.value.iValue
-      case .txInWaterfallEnabled:   Model.shared.transmit.txInWaterfallEnabled = property.value.bValue
-      case .txMonitorAvailable:     Model.shared.transmit.txMonitorAvailable = property.value.bValue
-      case .txMonitorEnabled:       Model.shared.transmit.txMonitorEnabled = property.value.bValue
-      case .txMonitorGainCw:        Model.shared.transmit.txMonitorGainCw = property.value.iValue
-      case .txMonitorGainSb:        Model.shared.transmit.txMonitorGainSb = property.value.iValue
-      case .txMonitorPanCw:         Model.shared.transmit.txMonitorPanCw = property.value.iValue
-      case .txMonitorPanSb:         Model.shared.transmit.txMonitorPanSb = property.value.iValue
-      case .txRfPowerChanges:       Model.shared.transmit.txRfPowerChanges = property.value.bValue
-      case .txSliceMode:            Model.shared.transmit.txSliceMode = property.value
-      case .tune:                   Model.shared.transmit.tune = property.value.bValue
-      case .tunePower:              Model.shared.transmit.tunePower = property.value.iValue
-      case .voxEnabled:             Model.shared.transmit.voxEnabled = property.value.bValue
-      case .voxDelay:               Model.shared.transmit.voxDelay = property.value.iValue
-      case .voxLevel:               Model.shared.transmit.voxLevel = property.value.iValue
+      case .amCarrierLevel:         carrierLevel = property.value.iValue
+      case .companderEnabled:       companderEnabled = property.value.bValue
+      case .companderLevel:         companderLevel = property.value.iValue
+      case .cwBreakInEnabled:       cwBreakInEnabled = property.value.bValue
+      case .cwBreakInDelay:         cwBreakInDelay = property.value.iValue
+      case .cwIambicEnabled:        cwIambicEnabled = property.value.bValue
+      case .cwIambicMode:           cwIambicMode = property.value.iValue
+      case .cwlEnabled:             cwlEnabled = property.value.bValue
+      case .cwPitch:                cwPitch = property.value.iValue
+      case .cwSidetoneEnabled:      cwSidetoneEnabled = property.value.bValue
+      case .cwSpeed:                cwSpeed = property.value.iValue
+      case .cwSwapPaddles:          cwSwapPaddles = property.value.bValue
+      case .cwSyncCwxEnabled:       cwSyncCwxEnabled = property.value.bValue
+      case .daxEnabled:             daxEnabled = property.value.bValue
+      case .frequency:              frequency = property.value.mhzToHz
+      case .hwAlcEnabled:           hwAlcEnabled = property.value.bValue
+      case .inhibit:                inhibit = property.value.bValue
+      case .maxPowerLevel:          maxPowerLevel = property.value.iValue
+      case .metInRxEnabled:         metInRxEnabled = property.value.bValue
+      case .micAccEnabled:          micAccEnabled = property.value.bValue
+      case .micBoostEnabled:        micBoostEnabled = property.value.bValue
+      case .micBiasEnabled:         micBiasEnabled = property.value.bValue
+      case .micLevel:               micLevel = property.value.iValue
+      case .micSelection:           micSelection = property.value
+      case .rawIqEnabled:           rawIqEnabled = property.value.bValue
+      case .rfPower:                rfPower = property.value.iValue
+      case .speechProcessorEnabled: speechProcessorEnabled = property.value.bValue
+      case .speechProcessorLevel:   speechProcessorLevel = property.value.iValue
+      case .txAntenna:              txAntenna = property.value
+      case .txFilterChanges:        txFilterChanges = property.value.bValue
+      case .txFilterHigh:           txFilterHigh = property.value.iValue
+      case .txFilterLow:            txFilterLow = property.value.iValue
+      case .txInWaterfallEnabled:   txInWaterfallEnabled = property.value.bValue
+      case .txMonitorAvailable:     txMonitorAvailable = property.value.bValue
+      case .txMonitorEnabled:       txMonitorEnabled = property.value.bValue
+      case .txMonitorGainCw:        txMonitorGainCw = property.value.iValue
+      case .txMonitorGainSb:        txMonitorGainSb = property.value.iValue
+      case .txMonitorPanCw:         txMonitorPanCw = property.value.iValue
+      case .txMonitorPanSb:         txMonitorPanSb = property.value.iValue
+      case .txRfPowerChanges:       txRfPowerChanges = property.value.bValue
+      case .txSliceMode:            txSliceMode = property.value
+      case .tune:                   tune = property.value.bValue
+      case .tunePower:              tunePower = property.value.iValue
+      case .voxEnabled:             voxEnabled = property.value.bValue
+      case .voxDelay:               voxDelay = property.value.iValue
+      case .voxLevel:               voxLevel = property.value.iValue
       }
     }
     // is it initialized?
-    if Model.shared.transmit.initialized == false {
+    if initialized == false {
       // NO, it is now
-      Model.shared.transmit.initialized = true
+      initialized = true
       log("Transmit: initialized", .debug, #function, #file, #line)
     }
   }
+
+  
+  
+  
+  
+  
+  
+  
   
   // ----------------------------------------------------------------------------
   // MARK: - Private Static methods
@@ -213,7 +208,7 @@ public struct Transmit {
   ///   - radio:      the current radio
   ///   - property:   a Transmit Token
   ///   - value:      the new value
-  public static func setProperty(radio: Radio, _ property: TransmitToken, value: Any) {
+  public static func setProperty(radio: Radio, _ property: Property, value: Any) {
     // FIXME: add commands
   }
   
@@ -223,7 +218,7 @@ public struct Transmit {
   ///   - radio:      a Radio instance
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ token: TransmitToken, _ value: Any) {
+  private static func sendCommand(_ radio: Radio, _ token: Property, _ value: Any) {
     // FIXME: add commands
   }
   

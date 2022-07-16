@@ -11,15 +11,24 @@ import Foundation
 import Shared
 import Vita
 
-// RemoteRxAudioStream Struct
+// RemoteRxAudioStream
 //      creates a RemoteRxAudioStream instance to be used by a Client to support the
-//      processing of a stream of Audio from the Radio. RemoteRxAudioStream structs
-//      are added / removed by the incoming TCP messages. RemoteRxAudioStream objects
+//      processing of a stream of Audio from the Radio. RemoteRxAudioStream instances
+//      are added / removed by the incoming TCP messages. RemoteRxAudioStream instances
 //      periodically receive Audio in a UDP stream. They are collected in the
 //      Model.remoteRxAudioStreams collection.
+@MainActor
+public class RemoteRxAudioStream: Identifiable, Equatable, ObservableObject {
+  // Equality
+  public nonisolated static func == (lhs: RemoteRxAudioStream, rhs: RemoteRxAudioStream) -> Bool {
+    lhs.id == rhs.id
+  }
 
-public struct RemoteRxAudioStream: Identifiable {
-
+  // ----------------------------------------------------------------------------
+  // MARK: - Initialization
+  
+  public init(_ id: RemoteRxAudioStreamId) { self.id = id }
+  
   // ------------------------------------------------------------------------------
   // MARK: - Static properties
   
@@ -38,17 +47,17 @@ public struct RemoteRxAudioStream: Identifiable {
     case none
   }
   
-  public internal(set) var id: RemoteRxAudioStreamId
-  public internal(set) var initialized = false
-  public internal(set) var isStreaming = false
+  public let id: RemoteRxAudioStreamId
+  public var initialized = false
+  public var isStreaming = false
 
-  public internal(set) var clientHandle: Handle = 0
-  public internal(set) var compression = ""
-  public internal(set) var ip = ""
+  @Published public var clientHandle: Handle = 0
+  @Published public var compression = ""
+  @Published public var ip = ""
   
   public var delegate: StreamHandler?
   
-  public enum RemoteRxAudioStreamToken : String {
+  public enum Property: String {
     case clientHandle = "client_handle"
     case compression
     case ip
@@ -64,77 +73,15 @@ public struct RemoteRxAudioStream: Identifiable {
   private var _rxSequenceNumber = -1
   
   // ----------------------------------------------------------------------------
-  // MARK: - Initialization
-  
-  public init(_ id: RemoteRxAudioStreamId) { self.id = id }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Public Static methods
-
-  /// Parse an RemoteRxAudioStream status message
-  /// - Parameters:
-  ///   - keyValues:          a KeyValuesArray
-  ///   - radio:              the current Radio class
-  ///   - queue:              a parse Queue for the object
-  ///   - inUse:              false = "to be deleted"
-  public static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    // get the Id
-    if let id =  properties[0].key.streamId {
-      // is the object in use?
-      if inUse {
-        // YES, does it exist?
-        if Model.shared.remoteRxAudioStreams[id: id] == nil {
-          // create a new object & add it to the collection
-          Model.shared.remoteRxAudioStreams[id: id] = RemoteRxAudioStream(id)
-          log("RemoteRxAudioStream \(id.hex): added", .debug, #function, #file, #line)
-        }
-        // pass the remaining key values for parsing (dropping the Id)
-        Model.shared.remoteRxAudioStreams[id: id]?.parseProperties( Array(properties.dropFirst(2)) )
-        
-      } else {
-        // NO, does it exist?
-        if Model.shared.remoteRxAudioStreams[id: id] != nil {
-          // YES, remove it
-          Model.shared.remoteRxAudioStreams.remove(id: id)
-        }
-      }
-    }
-  }
-
-  /// Set a property
-  /// - Parameters:
-  ///   - radio:      the current radio
-  ///   - id:         a RemoteRxAudioStream Id
-  ///   - property:   a RemoteRxAudioStream Token
-  ///   - value:      the new value
-  public static func setProperty(radio: Radio, _ id: RemoteRxAudioStreamId, property: RemoteRxAudioStreamToken, value: Any) {
-    // FIXME: add commands
-  }
-
-  /// Remove the specified RemoteRxAudioStream
-  /// - Parameter id:     a RemoteRxAudioStreamId
-  public static func remove(_ id: RemoteRxAudioStreamId) {
-    Model.shared.remoteRxAudioStreams.remove(id: id)
-    log("RemoteRxAudioStream \(id.hex): removed", .debug, #function, #file, #line)
-  }
-  
-  /// Remove all RemoteRxAudioStreams
-  public static func removeAll() {
-    for remoteRxAudioStream in Model.shared.remoteRxAudioStreams {
-      remove(remoteRxAudioStream.id)
-    }
-  }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Private Static methods
+  // MARK: - Public Instance methods
 
   ///  Parse RemoteRxAudioStream key/value pairs
   /// - Parameter properties: a KeyValuesArray
-  private mutating func parseProperties(_ properties: KeyValuesArray) {
+  public func parse(_ properties: KeyValuesArray) async {
     // process each key/value pair
     for property in properties {
       // check for unknown Keys
-      guard let token = RemoteRxAudioStreamToken(rawValue: property.key) else {
+      guard let token = Property(rawValue: property.key) else {
         // log it and ignore the Key
         log("RemoteRxAudioStream, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
@@ -154,14 +101,34 @@ public struct RemoteRxAudioStream: Identifiable {
       log("RemoteRxAudioStream \(id.hex): initialized handle = \(clientHandle.hex)", .debug, #function, #file, #line)
     }
   }
+
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  /// Set a property
+  /// - Parameters:
+  ///   - radio:      the current radio
+  ///   - id:         a RemoteRxAudioStream Id
+  ///   - property:   a RemoteRxAudioStream Token
+  ///   - value:      the new value
+  public static func setProperty(radio: Radio, _ id: RemoteRxAudioStreamId, property: Property, value: Any) {
+    // FIXME: add commands
+  }
+
   /// Send a command to Set a RemoteRxAudioStream property
   /// - Parameters:
   ///   - radio:      a Radio instance
   ///   - id:         the Id for the specified RemoteRxAudioStream
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ id: RemoteRxAudioStreamId, _ token: RemoteRxAudioStreamToken, _ value: Any) {
+  private static func sendCommand(_ radio: Radio, _ id: RemoteRxAudioStreamId, _ token: Property, _ value: Any) {
     // FIXME: add commands
   }
 
@@ -171,7 +138,7 @@ public struct RemoteRxAudioStream: Identifiable {
   /// Receive RxRemoteAudioStream audio
   /// - Parameters:
   ///   - vita:               an Opus Vita struct
-  public mutating func vitaProcessor(_ vita: Vita) {
+  public func vitaProcessor(_ vita: Vita) {
     
     // FIXME: This assumes Opus encoded audio
     

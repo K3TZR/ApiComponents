@@ -12,71 +12,38 @@ import Combine
 import Shared
 import Vita
 
-/// Meter Struct implementation
-///
-///      A Meter instance to be used by a Client to support the
-///      rendering of a Meter. They are collected in the
-///      metersCollection global actor.
-///
-public struct Meter: Identifiable, Equatable {
+// Meter
+//      A Meter instance to be used by a Client to support the
+//      rendering of a Meter. They are collected in the
+//      Model.meters collection.
+@MainActor
+public class Meter: Identifiable, Equatable, ObservableObject {
+  // Equality
+  public nonisolated static func == (lhs: Meter, rhs: Meter) -> Bool {
+    lhs.id == rhs.id
+  }
+
+  // ----------------------------------------------------------------------------
+  // MARK: - Initialization
+  
+  public init(_ id: MeterId) { self.id = id }
+
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
   public let id: MeterId
-  public internal(set) var initialized: Bool = false
+  public var initialized: Bool = false
 
-  public var desc: String = ""
-  public var fps: Int = 0
-  public var high: Float = 0
-  public var low: Float = 0
-  public var group: String = ""
-  public var name: String = ""
-  public var peak: Float = 0
-  public var source: String = ""
-  public var units: String = ""
-  public var value: Float = 0
- 
-//  public internal(set) var _desc = ""
-//  public internal(set) var _fps = 0
-//  public internal(set) var _high: Float = 0
-//  public internal(set) var _low: Float = 0
-//  public internal(set) var _group = ""
-//  public internal(set) var _name = ""
-//  public internal(set) var _peak: Float = 0
-//  public internal(set) var _source = ""
-//  public internal(set) var _units = ""
-//  public internal(set) var _value: Float = 0
-
-//  public var desc : String {
-//    get { Model.q.sync { _desc }}
-//    set { Model.q.sync(flags: .barrier) { _desc = newValue }}}
-//  public var fps : Int {
-//    get { Model.q.sync { _fps }}
-//    set { Model.q.sync(flags: .barrier) { _fps = newValue }}}
-//  public var high : Float {
-//    get { Model.q.sync { _high }}
-//    set { Model.q.sync(flags: .barrier) { _high = newValue }}}
-//  public var low : Float {
-//    get { Model.q.sync { _low }}
-//    set { Model.q.sync(flags: .barrier) { _low = newValue }}}
-//  public var group : String {
-//    get { Model.q.sync { _group }}
-//    set { Model.q.sync(flags: .barrier) { _group = newValue }}}
-//  public var name : String {
-//    get { Model.q.sync { _name }}
-//    set { Model.q.sync(flags: .barrier) { _name = newValue }}}
-//  public var peak : Float {
-//    get { Model.q.sync { _peak }}
-//    set { Model.q.sync(flags: .barrier) { _peak = newValue }}}
-//  public var source : String {
-//    get { Model.q.sync { _source }}
-//    set { Model.q.sync(flags: .barrier) { _source = newValue }}}
-//  public var units : String {
-//    get { Model.q.sync { _units }}
-//    set { Model.q.sync(flags: .barrier) { _units = newValue }}}
-//  public var value : Float {
-//    get { Model.q.sync { _value }}
-//    set { Model.q.sync(flags: .barrier) { _value = newValue }}}
+  @Published public var desc: String = ""
+  @Published public var fps: Int = 0
+  @Published public var high: Float = 0
+  @Published public var low: Float = 0
+  @Published public var group: String = ""
+  @Published public var name: String = ""
+  @Published public var peak: Float = 0
+  @Published public var source: String = ""
+  @Published public var units: String = ""
+  @Published public var value: Float = 0
 
   public static var meterPublisher = PassthroughSubject<Meter, Never>()
   public static var metersAreStreaming = false
@@ -88,7 +55,7 @@ public struct Meter: Identifiable, Equatable {
     case radio      = "rad"
     case amplifier  = "amp"
   }
-  public enum ShortName : String, CaseIterable {
+  public enum ShortName: String, CaseIterable {
     case codecOutput            = "codec"
     case microphoneAverage      = "mic"
     case microphoneOutput       = "sc_mic"
@@ -115,7 +82,7 @@ public struct Meter: Identifiable, Equatable {
     case voltageHwAlc           = "hwalc"
   }
 
-  public enum MeterToken: String {
+  public enum Property: String {
     case desc
     case fps
     case high       = "hi"
@@ -126,7 +93,7 @@ public struct Meter: Identifiable, Equatable {
     case units      = "unit"
   }
   
-  public enum Units : String {
+  public enum Units: String {
     case none
     case amps
     case db
@@ -142,76 +109,67 @@ public struct Meter: Identifiable, Equatable {
   }
 
   // ----------------------------------------------------------------------------
-  // MARK: - Initialization
+  // MARK: - Public Instance methods
   
-  public init(_ id: MeterId) { self.id = id }
+  /// Parse Meter key/value pairs
+  /// - Parameter properties:       a KeyValuesArray
+  public func parse(_ properties: KeyValuesArray) async {
+    // process each key/value pair, <n.key=value>
+    for property in properties {
+      // separate the Meter Number from the Key
+      let numberAndKey = property.key.components(separatedBy: ".")
+      
+      // get the Key
+      let key = numberAndKey[1]
+      
+      // check for unknown Keys
+      guard let token = Property(rawValue: key) else {
+        // unknown, log it and ignore the Key
+        log("Meter, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
+        continue
+      }
+      // known Keys, in alphabetical order
+      switch token {
+        
+      case .desc:     desc = property.value
+      case .fps:      fps = property.value.iValue
+      case .high:     high = property.value.fValue
+      case .low:      low = property.value.fValue
+      case .name:     name = property.value.lowercased()
+      case .group:    group = property.value
+      case .source:   source = property.value.lowercased()
+      case .units:    units = property.value.lowercased()
+      }
+    }
+    // is it initialized?
+    if initialized == false && group != "" && units != "" {
+      //NO, it is now
+      initialized = true
+      log("Meter \(id): initialized \(name), source = \(source), group = \(group)", .debug, #function, #file, #line)
+    }
+  }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   // ----------------------------------------------------------------------------
   // MARK: - Public Static methods
   
-  // Equality
-  public static func == (lhs: Meter, rhs: Meter) -> Bool {
-    lhs.id == rhs.id
-  }
-
-  /// Parse a Meter status message
-  /// - Parameters:
-  ///   - properties:     a KeyValuesArray of Meter properties
-  ///   - inUse:          false = "to be deleted"
-  public static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    // is the object in use?
-    if inUse {
-      // YES, extract the Meter Number from the first KeyValues entry
-      let components = properties[0].key.components(separatedBy: ".")
-      if components.count != 2 {return }
-      
-      // get the id
-      if let id = components[0].objectId {
-        // does the meter exist?
-        
-        if Model.shared.meters[id: id] == nil {
-          // NO, create a new Meter & add it to the Meters collection
-          Model.shared.meters[id: id] = Meter(id)
-          log("Meter \(id.hex): added", .debug, #function, #file, #line)
-        }
-        // pass the key values to the Meter for parsing
-        Model.shared.meters[id: id]?.parseProperties( properties )
-      }
-      
-    } else {
-      // NO, get the Id
-      if let id = properties[0].key.components(separatedBy: " ")[0].objectId {
-        remove(id)
-      }
-    }
-  }
-  
-  /// Set the value of a Meter
-  /// - Parameters:
-  ///   - id:         the MeterId of the specified meter
-  ///   - value:      the current value
-  public static func setValue(_ id: MeterId, value: Float) {
-    Model.shared.meters[id: id]!.value = value
-  }
-  
-  /// Remove the specified Meter
-  /// - Parameter id:     a MeterId
-  public static func remove(_ id: MeterId) {
-    Model.shared.meters.remove(id: id)
-    log("Meter \(id): removed", .debug, #function, #file, #line)
-  }
-  
-  /// Remove all Meters
-  public static func removeAll() {
-    for meter in Model.shared.meters {
-      remove(meter.id)
-    }
-  }
-
   /// Process the Vita struct containing Meter data
   /// - Parameters:
   ///   - vita:        a Vita struct
-  public static func vitaProcessor(_ vita: Vita) {
+  public static func vitaProcessor(_ vita: Vita) async {
     let kDbDbmDbfsSwrDenom: Float = 128.0   // denominator for Db, Dbm, Dbfs, Swr
     let kDegDenom: Float = 64.0             // denominator for Degc, Degf
     
@@ -273,47 +231,6 @@ public struct Meter: Identifiable, Equatable {
           }
         }
       }
-    }
-  }
-
-  // ----------------------------------------------------------------------------
-  // MARK: - Private methods
-  
-  /// Parse Meter key/value pairs
-  /// - Parameter properties:       a KeyValuesArray
-  private mutating func parseProperties(_ properties: KeyValuesArray) {
-    // process each key/value pair, <n.key=value>
-    for property in properties {
-      // separate the Meter Number from the Key
-      let numberAndKey = property.key.components(separatedBy: ".")
-      
-      // get the Key
-      let key = numberAndKey[1]
-      
-      // check for unknown Keys
-      guard let token = MeterToken(rawValue: key) else {
-        // log it and ignore the Key
-        log("Meter, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
-        continue
-      }
-      // known Keys, in alphabetical order
-      switch token {
-        
-      case .desc:     desc = property.value
-      case .fps:      fps = property.value.iValue
-      case .high:     high = property.value.fValue
-      case .low:      low = property.value.fValue
-      case .name:     name = property.value.lowercased()
-      case .group:    group = property.value
-      case .source:   source = property.value.lowercased()
-      case .units:    units = property.value.lowercased()
-      }
-    }
-    // is it initialized?
-    if initialized == false && group != "" && units != "" {
-      //NO, it is now
-      initialized = true
-      log("Meter \(id): initialized \(name), source = \(source), group = \(group)", .debug, #function, #file, #line)
     }
   }
 }

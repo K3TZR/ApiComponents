@@ -11,13 +11,20 @@ import Foundation
 import Shared
 // import LogProxy
 
-/// Cwx Class implementation
-///
-///      creates a Cwx instance to be used by a Client to support the
-///      rendering of a Cwx. Cwx objects are added, removed and updated
-///      by the incoming TCP messages.
-///
-public struct Cwx {
+// Cwx
+//      creates a Cwx instance to be used by a Client to support the
+//      rendering of a Cwx. Cwx objects are added, removed and updated
+//      by the incoming TCP messages.
+//
+@MainActor
+public class Cwx: ObservableObject {
+  // ------------------------------------------------------------------------------
+  // MARK: - Initialization
+  
+  init() {
+    macros = [String](repeating: "", count: kMaxNumberOfMacros)
+  }
+  
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
   
@@ -37,7 +44,7 @@ public struct Cwx {
   // ------------------------------------------------------------------------------
   // MARK: - Internal types
   
-  enum CwxTokens: String {
+  enum Property: String {
     case breakInDelay   = "break_in_delay"
     case qskEnabled     = "qsk_enabled"
     case erase
@@ -45,12 +52,70 @@ public struct Cwx {
     case wpm            = "wpm"
   }
   
-  // ------------------------------------------------------------------------------
-  // MARK: - Initialization
+  // ----------------------------------------------------------------------------
+  // MARK: - Public Instance methods
   
-  init() {
-    macros = [String](repeating: "", count: kMaxNumberOfMacros)
+  /// Parse Cwx key/value pairs, called by Radio
+  ///   PropertiesParser protocol method, executes on the parseQ
+  ///
+  /// - Parameter properties:       a KeyValuesArray
+  ///
+  public func parse(_ properties: KeyValuesArray) async {
+    // process each key/value pair, <key=value>
+    for property in properties {
+      // is it a Macro?
+      if property.key.hasPrefix("macro") && property.key.lengthOfBytes(using: String.Encoding.ascii) > 5 {
+        
+        // YES, get the index
+        let oIndex = property.key.firstIndex(of: "o")!
+        let numberIndex = property.key.index(after: oIndex)
+        let index = Int( property.key[numberIndex...] ) ?? 0
+        
+        // ignore invalid indexes
+        if index < 1 || index > kMaxNumberOfMacros { continue }
+        
+        // update the macro after "unFixing" the string
+        macros[index - 1] = property.value.unfix()
+        
+      } else {
+        // Check for Unknown Keys
+        guard let token = Property(rawValue: property.key) else {
+          // log it and ignore the Key
+          log("Cwx, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
+          return
+        }
+        // Known tokens, in alphabetical order
+        switch token {
+          
+        case .erase:
+          let values = property.value.components(separatedBy: ",")
+          if values.count != 2 { break }
+          let start = Int(values[0])
+          let stop = Int(values[1])
+          if let start = start, let stop = stop {
+            // inform the Event Handler (if any)
+            eraseSentEventHandler?(start, stop)
+          }
+        case .breakInDelay: breakInDelay = property.value.iValue
+        case .qskEnabled:   qskEnabled = property.value.bValue
+        case .wpm:          wpm = property.value.iValue
+          
+        case .sent:         charSentEventHandler?(property.value.iValue)
+        }
+      }
+    }
   }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   // ------------------------------------------------------------------------------
   // MARK: - Internal methods
@@ -225,60 +290,4 @@ public struct Cwx {
   //    private func cwxCmd(_ tokenString: String, _ value: Any) {
   //        _api.send("cwx " + tokenString + " \(value)")
   //    }
-}
-
-// ----------------------------------------------------------------------------
-// MARK: - StaticModel extension
-
-extension Cwx {
-  /// Parse Cwx key/value pairs, called by Radio
-  ///   PropertiesParser protocol method, executes on the parseQ
-  ///
-  /// - Parameter properties:       a KeyValuesArray
-  ///
-  mutating func parseProperties(_ properties: KeyValuesArray)  {
-    // process each key/value pair, <key=value>
-    for property in properties {
-      // is it a Macro?
-      if property.key.hasPrefix("macro") && property.key.lengthOfBytes(using: String.Encoding.ascii) > 5 {
-        
-        // YES, get the index
-        let oIndex = property.key.firstIndex(of: "o")!
-        let numberIndex = property.key.index(after: oIndex)
-        let index = Int( property.key[numberIndex...] ) ?? 0
-        
-        // ignore invalid indexes
-        if index < 1 || index > kMaxNumberOfMacros { continue }
-        
-        // update the macro after "unFixing" the string
-        macros[index - 1] = property.value.unfix()
-        
-      } else {
-        // Check for Unknown Keys
-        guard let token = CwxTokens(rawValue: property.key) else {
-          // log it and ignore the Key
-          log("Cwx, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
-          return
-        }
-        // Known tokens, in alphabetical order
-        switch token {
-          
-        case .erase:
-          let values = property.value.components(separatedBy: ",")
-          if values.count != 2 { break }
-          let start = Int(values[0])
-          let stop = Int(values[1])
-          if let start = start, let stop = stop {
-            // inform the Event Handler (if any)
-            eraseSentEventHandler?(start, stop)
-          }
-        case .breakInDelay: breakInDelay = property.value.iValue
-        case .qskEnabled:   qskEnabled = property.value.bValue
-        case .wpm:          wpm = property.value.iValue
-          
-        case .sent:         charSentEventHandler?(property.value.iValue)
-        }
-      }
-    }
-  }
 }

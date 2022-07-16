@@ -13,21 +13,24 @@ extension Radio {
   
   /// Parse  Command messages from the Radio
   /// - Parameter msg:        the Message String
-  func receivedMessage(_ msg: TcpMessage) {
-    // get all except the first character
-    let suffix = String(msg.text.dropFirst())
-    
-    // switch on the first character of the text
-    switch msg.text[msg.text.startIndex] {
-      
-    case "H", "h":  connectionHandle = suffix.handle ; log("Radio: connectionHandle = \(connectionHandle?.hex ?? "nil")", .debug, #function, #file, #line)
-    case "M", "m":  parseMessage( msg.text.dropFirst() )
-    case "R", "r":  parseReply( msg.text.dropFirst() )
-    case "S", "s":  parseStatus( msg.text.dropFirst() )
-    case "V", "v":  hardwareVersion = suffix ; log("Radio: hardwareVersion = \(hardwareVersion ?? "unknown")", .debug, #function, #file, #line)
-    default:        log("Radio: unexpected message = \(msg)", .warning, #function, #file, #line)
-    }
-  }
+//  func receivedMessage(_ msg: TcpMessage) {    
+//
+//    Task {
+//      // get all except the first character
+//      let suffix = String(msg.text.dropFirst())
+//      
+//      // switch on the first character of the text
+//      switch msg.text[msg.text.startIndex] {
+//        
+//      case "H", "h":  connectionHandle = suffix.handle ; log("Radio: connectionHandle = \(connectionHandle?.hex ?? "nil")", .debug, #function, #file, #line)
+//      case "M", "m":  parseMessage( msg.text.dropFirst() )
+//      case "R", "r":  parseReply( msg.text.dropFirst() )
+//      case "S", "s":  parseStatus( msg.text.dropFirst() )
+//      case "V", "v":  hardwareVersion = suffix ; log("Radio: hardwareVersion = \(hardwareVersion ?? "unknown")", .debug, #function, #file, #line)
+//      default:        log("Radio: unexpected message = \(msg)", .warning, #function, #file, #line)
+//      }
+//    }
+//  }
   
   /// Parse a Message.
   /// - Parameters:
@@ -52,8 +55,8 @@ extension Radio {
   /// Parse a Status
   /// - Parameters:
   ///   - commandSuffix:      a Command Suffix
-  func parseStatus(_ commandSuffix: Substring) {
-//  func parseStatus(_ commandSuffix: Substring) async {
+  public func parseStatus(_ commandSuffix: Substring) {
+    
     // separate it into its components ( [0] = <apiHandle>, [1] = <remainder> )
     let components = commandSuffix.components(separatedBy: "|")
     
@@ -62,48 +65,23 @@ extension Radio {
       log("Radio: incomplete status = c\(commandSuffix)", .warning, #function, #file, #line)
       return
     }
+    
     // find the space & get the msgType
     let spaceIndex = components[1].firstIndex(of: " ")!
-    let msgType = String(components[1][..<spaceIndex])
+    let statusType = String(components[1][..<spaceIndex])
     
     // everything past the msgType is in the remainder
-    let remainderIndex = components[1].index(after: spaceIndex)
-    let remainder = String(components[1][remainderIndex...])
+    let messageIndex = components[1].index(after: spaceIndex)
+    let statusMessage = String(components[1][messageIndex...])
     
-    // Check for unknown Message Types
-    guard let token = StatusToken(rawValue: msgType)  else {
+    // Check for unknown Object Types
+    guard let objectType = Model.ObjectType(rawValue: statusType)  else {
       // log it and ignore the message
-      log("Radio: unknown status token = \(msgType)", .warning, #function, #file, #line)
+      log("Radio: unknown status token = \(statusType)", .warning, #function, #file, #line)
       return
     }
-    // Known Message Types, in alphabetical order
-    switch token {
-      
-    case .amplifier:      Amplifier.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
-    case .atu:            Atu.parseProperties(remainder.keyValuesArray() )
-    case .client:         parseClient(remainder.keyValuesArray(), !remainder.contains(Shared.kDisconnected))
-    case .cwx:
-      break
-//      objects.cwx.parseProperties(remainder.fix().keyValuesArray() )
-    case .display:        parseDisplay(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
-    case .eq:             Equalizer.parseStatus(remainder.keyValuesArray())
-    case .file:           log("Radio, unprocessed \(msgType) message: \(remainder)", .warning, #function, #file, #line)
-    case .gps:            Model.shared.gps.parseProperties(remainder.keyValuesArray(delimiter: "#") )
-    case .interlock:      parseInterlock(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
-    case .memory:         Memory.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
-    case .meter:          Meter.parseStatus(remainder.keyValuesArray(delimiter: "#"), !remainder.contains(Shared.kRemoved))
-    case .mixer:          log("Radio, unprocessed \(msgType) message: \(remainder)", .warning, #function, #file, #line)
-    case .profile:        Profile.parseStatus(remainder.keyValuesArray(delimiter: "="))
-    case .radio:          parseProperties(remainder.keyValuesArray())
-    case .slice:          Slice.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kNotInUse))
-    case .stream:         parseStream(remainder)
-    case .tnf:            Tnf.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
-    case .transmit:       parseTransmit(remainder.keyValuesArray(), !remainder.contains(Shared.kRemoved))
-    case .turf:           log("Radio, unprocessed \(msgType) message: \(remainder)", .warning, #function, #file, #line)
-    case .usbCable:       UsbCable.parseStatus(remainder.keyValuesArray())
-    case .wan:            Wan.parseProperties(remainder.keyValuesArray())
-    case .waveform:       Waveform.parseProperties(remainder.keyValuesArray(delimiter: "="))
-    case .xvtr:           Xvtr.parseStatus(remainder.keyValuesArray(), !remainder.contains(Shared.kNotInUse))
+    Task {
+      await Model.shared.process(objectType, statusMessage)
     }
     // is this status message the first for our handle?
     if _clientInitialized == false && components[0].handle == connectionHandle {
@@ -133,14 +111,14 @@ extension Radio {
   /// - Parameters:
   ///   - properties:      a KeyValuesArray
   ///   - inUse:          false = "to be deleted"
-  private func parseDisplay(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    switch properties[0].key {
-      
-    case DisplayToken.panadapter.rawValue:   Panadapter.parseStatus(properties, inUse)
-    case DisplayToken.waterfall.rawValue:    Waterfall.parseStatus(properties, inUse)
-    default:  log("Radio, unknown display type: \(properties[0].key)", .warning, #function, #file, #line)
-    }
-  }
+//  private func parseDisplay(_ properties: KeyValuesArray, _ inUse: Bool = true) {
+//    switch properties[0].key {
+//
+//    case DisplayToken.panadapter.rawValue:   Panadapter.parseStatus(properties, inUse)
+//    case DisplayToken.waterfall.rawValue:    Waterfall.parseStatus(properties, inUse)
+//    default:  log("Radio, unknown display type: \(properties[0].key)", .warning, #function, #file, #line)
+//    }
+//  }
   
   func parseConnection(properties: KeyValuesArray, handle: Handle) {
     var clientId = ""
@@ -153,7 +131,7 @@ extension Radio {
       if client.handle != 0 && client.clientId != nil && client.program != "" && client.station != "" {
         log("Radio: guiClient updated: \(client.handle.hex), \(client.station), \(client.program), \(client.clientId!)", .info, #function, #file, #line)
         //              NC.post(.guiClientHasBeenUpdated, object: client as Any?)
-        Discovered.shared.clientPublisher.send(ClientUpdate(.updated, client: client, source: packet.source))
+        clientPublisher.send(ClientUpdate(.updated, client: client, source: packet.source))
       }
     }
     // parse remaining properties
@@ -242,18 +220,18 @@ extension Radio {
   ///   - radio:          the current Radio class
   ///   - properties:     a KeyValuesArray
   ///   - inUse:          false = "to be deleted"
-  func parseInterlock(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    // is it a Band Setting?
-    if properties[0].key == "band" {
-      // YES, drop the "band", pass it to BandSetting
-      BandSetting.parseStatus(Array(properties.dropFirst()), inUse )
-
-    } else {
-      // NO, pass it to Interlock
-      Interlock.parseProperties(properties)
-      interlockStateChange(Model.shared.interlock.state)
-    }
-  }
+//  func parseInterlock(_ properties: KeyValuesArray, _ inUse: Bool = true) {
+//    // is it a Band Setting?
+//    if properties[0].key == "band" {
+//      // YES, drop the "band", pass it to BandSetting
+//      BandSetting.parse(Array(properties.dropFirst()), inUse )
+//
+//    } else {
+//      // NO, pass it to Interlock
+//      Interlock.parse(properties)
+//      interlockStateChange(Model.shared.interlock.state)
+//    }
+//  }
   
   /// Parse the Reply to an Info command
   ///   executed on the parseQ
@@ -299,17 +277,17 @@ extension Radio {
   ///   - radio:          the current Radio class
   ///   - properties:     a KeyValuesArray
   ///   - inUse:          false = "to be deleted"
-  private func parseTransmit(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    // is it a Band Setting?
-    if properties[0].key == "band" {
-      // YES, drop the "band", pass it to BandSetting
-      BandSetting.parseStatus(Array(properties.dropFirst()), inUse )
-      
-    } else {
-      // NO, pass it to Transmit
-      Transmit.parseProperties(properties)
-    }
-  }
+//  private func parseTransmit(_ properties: KeyValuesArray, _ inUse: Bool = true) {
+//    // is it a Band Setting?
+//    if properties[0].key == "band" {
+//      // YES, drop the "band", pass it to BandSetting
+//      BandSetting.parse(Array(properties.dropFirst()), inUse )
+//
+//    } else {
+//      // NO, pass it to Transmit
+//      Transmit.parse(properties)
+//    }
+//  }
   
   /// Parse the Reply to a Version command, reply format: <key=value>#<key=value>#...<key=value>
   /// - Parameters:
@@ -439,45 +417,45 @@ extension Radio {
   ///   - keyValues:      a KeyValuesArray
   ///   - radio:          the current Radio class
   ///   - remainder:      the text of the status mesage
-  private func parseStream(_ remainder: String) {
-    let properties = remainder.keyValuesArray()
-    
-    if isForThisClient(properties, connectionHandle: connectionHandle) {
-      
-      // is the 1st KeyValue a StreamId?
-      if let id = properties[0].key.streamId {
-        // YES, is it a removal?
-        if remainder.contains(Shared.kRemoved) {
-          
-          // removal, find the stream & remove it
-          if Model.shared.daxIqStreams[id: id] != nil          { DaxIqStream.parseStatus(properties, false)           ; return }
-          if Model.shared.daxMicAudioStreams[id: id] != nil    { DaxMicAudioStream.parseStatus(properties, false)     ; return }
-          if Model.shared.daxRxAudioStreams[id: id] != nil     { DaxRxAudioStream.parseStatus(properties, false)      ; return }
-          if Model.shared.daxTxAudioStreams[id: id] != nil     { DaxTxAudioStream.parseStatus(properties, false)      ; return }
-          if Model.shared.remoteRxAudioStreams[id: id] != nil  { RemoteRxAudioStream.parseStatus(properties, false)   ; return }
-          if Model.shared.remoteTxAudioStreams[id: id] != nil  { RemoteTxAudioStream.parseStatus(properties, false)   ; return }
-          return
-          
-        } else {
-          // NOT a removal, check for unknown Keys
-          guard let token = StreamTypeToken(rawValue: properties[1].value) else {
-            // log it and ignore the Key
-            log("Radio, unknown Stream type: \(properties[1].value)", .warning, #function, #file, #line)
-            return
-          }
-          switch token {
-            
-          case .daxIq:      DaxIqStream.parseStatus(properties)
-          case .daxMic:     DaxMicAudioStream.parseStatus(properties)
-          case .daxRx:      DaxRxAudioStream.parseStatus(properties)
-          case .daxTx:      DaxTxAudioStream.parseStatus(properties)
-          case .remoteRx:   RemoteRxAudioStream.parseStatus(properties)
-          case .remoteTx:   RemoteTxAudioStream.parseStatus(properties)
-          }
-        }
-      }
-    }
-  }
+//  private func parseStream(_ remainder: String) {
+//    let properties = remainder.keyValuesArray()
+//    
+//    if isForThisClient(properties, connectionHandle: connectionHandle) {
+//      
+//      // is the 1st KeyValue a StreamId?
+//      if let id = properties[0].key.streamId {
+//        // YES, is it a removal?
+//        if remainder.contains(Shared.kRemoved) {
+//          
+//          // removal, find the stream & remove it
+//          if Model.shared.daxIqStreams[id: id] != nil          { processDaxIqStream(properties, false)           ; return }
+//          if Model.shared.daxMicAudioStreams[id: id] != nil    { DaxMicAudioStream.parseStatus(properties, false)     ; return }
+//          if Model.shared.daxRxAudioStreams[id: id] != nil     { DaxRxAudioStream.parseStatus(properties, false)      ; return }
+//          if Model.shared.daxTxAudioStreams[id: id] != nil     { DaxTxAudioStream.parseStatus(properties, false)      ; return }
+//          if Model.shared.remoteRxAudioStreams[id: id] != nil  { RemoteRxAudioStream.parseStatus(properties, false)   ; return }
+//          if Model.shared.remoteTxAudioStreams[id: id] != nil  { RemoteTxAudioStream.parseStatus(properties, false)   ; return }
+//          return
+//          
+//        } else {
+//          // NOT a removal, check for unknown Keys
+//          guard let token = StreamTypeToken(rawValue: properties[1].value) else {
+//            // log it and ignore the Key
+//            log("Radio, unknown Stream type: \(properties[1].value)", .warning, #function, #file, #line)
+//            return
+//          }
+//          switch token {
+//            
+//          case .daxIq:      DaxIqStream.parseStatus(properties)
+//          case .daxMic:     DaxMicAudioStream.parseStatus(properties)
+//          case .daxRx:      DaxRxAudioStream.parseStatus(properties)
+//          case .daxTx:      DaxTxAudioStream.parseStatus(properties)
+//          case .remoteRx:   RemoteRxAudioStream.parseStatus(properties)
+//          case .remoteTx:   RemoteTxAudioStream.parseStatus(properties)
+//          }
+//        }
+//      }
+//    }
+//  }
   
   /// Parse a Static Net Properties status message
   /// - Parameters:

@@ -10,32 +10,42 @@ import Foundation
 
 import Shared
 
-// Xvtr Struct
+// Xvtr
 //      creates an Xvtr instance to be used by a Client to support the
 //      processing of an Xvtr. Xvtr structs are added, removed and updated by
 //      the incoming TCP messages. They are collected in the Model.xvtrs
 //      collection.
-
-public struct Xvtr: Identifiable {
+@MainActor
+public class Xvtr: Identifiable, Equatable, ObservableObject {
+  // Equality
+  public nonisolated static func == (lhs: Xvtr, rhs: Xvtr) -> Bool {
+    lhs.id == rhs.id
+  }
+  
   // ----------------------------------------------------------------------------
-  // MARK: - Published properties
+  // MARK: - Initialization
   
-  public internal(set) var id: XvtrId
-  public internal(set) var initialized = false
+  public init(_ id: XvtrId) { self.id = id }
   
-  public internal(set) var isValid = false
-  public internal(set) var preferred = false
-  public internal(set) var twoMeterInt = 0
-  public internal(set) var ifFrequency: Hz = 0
-  public internal(set) var loError = 0
-  public internal(set) var name = ""
-  public internal(set) var maxPower = 0
-  public internal(set) var order = 0
-  public internal(set) var rfFrequency: Hz = 0
-  public internal(set) var rxGain = 0
-  public internal(set) var rxOnly = false
+  // ----------------------------------------------------------------------------
+  // MARK: - Public properties
   
-  public enum XvtrToken: String {
+  public let id: XvtrId
+  public var initialized = false
+  
+  @Published public var isValid = false
+  @Published public var preferred = false
+  @Published public var twoMeterInt = 0
+  @Published public var ifFrequency: Hz = 0
+  @Published public var loError = 0
+  @Published public var name = ""
+  @Published public var maxPower = 0
+  @Published public var order = 0
+  @Published public var rfFrequency: Hz = 0
+  @Published public var rxGain = 0
+  @Published public var rxOnly = false
+  
+  public enum Property: String {
     case name
     case ifFrequency    = "if_freq"
     case isValid        = "is_valid"
@@ -48,77 +58,17 @@ public struct Xvtr: Identifiable {
     case rxOnly         = "rx_only"
     case twoMeterInt    = "two_meter_int"
   }
-  
+   
   // ----------------------------------------------------------------------------
-  // MARK: - Initialization
-  
-  public init(_ id: XvtrId) { self.id = id }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Public Static methods
-  
-  /// Parse an Xvtr status message
-  /// - Parameters:
-  ///   - keyValues:      a KeyValuesArray
-  ///   - inUse:          false = "to be deleted"
-  static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true ) {
-    // get the id
-    if let id = properties[0].key.objectId {
-      // isthe Xvtr in use?
-      if inUse {
-        // YES, does the object exist?
-        if Model.shared.xvtrs[id: id] == nil {
-          // NO, create a new Xvtr & add it to the Xvtrs collection
-          Model.shared.xvtrs[id: id] = Xvtr(id)
-          log("Xvtr \(id.hex): added", .debug, #function, #file, #line)
-        }
-        // pass the remaining key values to the Xvtr for parsing
-        Model.shared.xvtrs[id: id]?.parseProperties( Array(properties.dropFirst(1)) )
-        
-      } else {
-        // does it exist?
-        if Model.shared.xvtrs[id: id] != nil {
-          // YES, remove it
-          remove(id)
-        }
-      }
-    }
-  }
-  
-  /// Set a property
-  /// - Parameters:
-  ///   - radio:      the current radio
-  ///   - id:         a Tnf Id
-  ///   - property:   a Tnf Token
-  ///   - value:      the new value
-  public static func setProperty(radio: Radio, _ id: XvtrId, token: XvtrToken, value: Any) {
-    sendCommand(radio, id, token, value)
-  }
-  
-  /// Remove an Xvtr
-  /// - Parameter id:   a Xvtr Id
-  public static func remove(_ id: XvtrId)  {
-    Model.shared.xvtrs.remove(id: id)
-    log("Xvtr \(id.hex): removed", .debug, #function, #file, #line)
-  }
-  
-  /// Remove all Xvtrs
-  public static func removeAll()  {
-    for xvtr in Model.shared.xvtrs {
-      remove(xvtr.id)
-    }
-  }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Private Static methods
+  // MARK: - Public Instance methods
   
   /// Parse Xvtr key/value pairs
   /// - Parameter properties:       a KeyValuesArray
-  private mutating func parseProperties(_ properties: KeyValuesArray) {
+  public func parse(_ properties: KeyValuesArray) async {
     // process each key/value pair, <key=value>
     for property in properties {
       // check for unknown Keys
-      guard let token = XvtrToken(rawValue: property.key) else {
+      guard let token = Property(rawValue: property.key) else {
         // log it and ignore the Key
         log("Xvtr, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
@@ -147,13 +97,22 @@ public struct Xvtr: Identifiable {
     }
   }
   
+  
+  
+ 
+  
+  
+  
+  
+  
+  
   /// Send a command to Set an Xvtr property
   /// - Parameters:
   ///   - radio:      a Radio instance
   ///   - id:         the Id for the specified Xvtr
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ id: XvtrId, _ token: XvtrToken, _ value: Any) {
+  private static func sendCommand(_ radio: Radio, _ id: XvtrId, _ token: Property, _ value: Any) {
     radio.send("xvtr set " + "\(id) " + token.rawValue + "=\(value)")
   }
 }

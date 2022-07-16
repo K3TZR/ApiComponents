@@ -18,25 +18,36 @@ import Vita
 //      structs are added / removed by the incoming TCP messages. DaxIqStream
 //      objects periodically receive IQ data in a UDP stream. They are collected
 //      in the Model.daxIqStreams collection.
+@MainActor
+public class DaxIqStream: Identifiable, Equatable, ObservableObject {
+  // Equality
+  public nonisolated static func == (lhs: DaxIqStream, rhs: DaxIqStream) -> Bool {
+    lhs.id == rhs.id
+  }
 
-public struct DaxIqStream: Identifiable {
+  // ----------------------------------------------------------------------------
+  // MARK: - Initialization
+  
+  public init(_ id: DaxIqStreamId) { self.id = id }
+  
   // ------------------------------------------------------------------------------
   // MARK: - Public properties
   
-  public internal(set) var id: DaxIqStreamId
-  public internal(set) var initialized = false
-  public internal(set) var isStreaming = false
+  public let id: DaxIqStreamId
+  public var initialized = false
+  public var isStreaming = false
 
-  public internal(set) var channel = 0
-  public internal(set) var clientHandle: Handle = 0
-  public internal(set) var ip = ""
-  public internal(set) var isActive = false
-  public internal(set) var pan: PanadapterId = 0
-  public internal(set) var rate = 0
+  @Published public var channel = 0
+  @Published public var clientHandle: Handle = 0
+  @Published public var ip = ""
+  @Published public var isActive = false
+  @Published public var pan: PanadapterId = 0
+  @Published public var rate = 0
+
   public var delegate: StreamHandler?
-  public private(set) var rxLostPacketCount = 0
+  public var rxLostPacketCount = 0
   
-  public enum DaxIqStreamToken: String {
+  public enum Property: String {
     case channel        = "daxiq_channel"
     case clientHandle   = "client_handle"
     case ip
@@ -57,84 +68,15 @@ public struct DaxIqStream: Identifiable {
   private var _rxSequenceNumber   = -1
   
   // ----------------------------------------------------------------------------
-  // MARK: - Initialization
+  // MARK: - Public Instance methods
   
-  public init(_ id: DaxIqStreamId) { self.id = id }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Private Command methods
-  
-  //    private func streamSet(_ token: DaxIqTokens, _ value: Any) {
-  //        _api.send("stream set \(id.hex) \(token.rawValue)=\(rate)")
-  //    }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Public Static methods
-  
-  /// Parse a Stream status message
-  /// - Parameters:
-  ///   - keyValues:      a KeyValuesArray
-  ///   - radio:          the current Radio class
-  ///   - queue:          a parse Queue for the object
-  ///   - inUse:          false = "to be deleted"
-  static func parseStatus(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    // get the Id
-    if let id =  properties[0].key.streamId {
-      // is the object in use?
-      if inUse {
-        // YES, does it exist?
-        if Model.shared.daxIqStreams[id: id] == nil {
-          // create a new object & add it to the collection
-          Model.shared.daxIqStreams[id: id] = DaxIqStream(id)
-          log("DaxIqStream \(id.hex): added", .debug, #function, #file, #line)
-        }
-        // pass the remaining key values for parsing
-        Model.shared.daxIqStreams[id: id]?.parseProperties( Array(properties.dropFirst(1)) )
-        
-      } else {
-        // NO, does it exist?
-        if Model.shared.daxIqStreams[id: id] != nil {
-          // YES, remove it
-          remove(id)
-        }
-      }
-    }
-  }
-
-  /// Set a property
-  /// - Parameters:
-  ///   - radio:      the current radio
-  ///   - id:         a DaxIqStream Id
-  ///   - property:   a DaxIqStream Token
-  ///   - value:      the new value
-  public static func setProperty(radio: Radio, _ id: DaxIqStreamId, property: DaxIqStreamToken, value: Any) {
-    // FIXME: add commands
-  }
-
-  /// Remove the specified DaxIqStream
-  /// - Parameter id:     a DaxIqStreamId
-  public static func remove(_ id: DaxIqStreamId) {
-    Model.shared.daxIqStreams.remove(id: id)
-    log("DaxIqStream removed: id = \(id.hex)", .debug, #function, #file, #line)
-  }
-  
-  /// Remove all DaxIqStreams
-  public static func removeAll() {
-    for daxIqStream in Model.shared.daxIqStreams {
-      Model.shared.daxIqStreams.remove(id: daxIqStream.id)
-    }
-  }
-  
-  // ----------------------------------------------------------------------------
-  // MARK: - Private Static methods
-  
-  /// Parse IQ Stream key/value pairs
+  /// Parse key/value pairs
   /// - Parameter properties:       a KeyValuesArray
-  private mutating func parseProperties(_ properties: KeyValuesArray) {
+  public func parse(_ properties: KeyValuesArray) async {
     // process each key/value pair, <key=value>
     for property in properties {
       
-      guard let token = DaxIqStreamToken(rawValue: property.key) else {
+      guard let token = Property(rawValue: property.key) else {
         // unknown Key, log it and ignore the Key
         log("DaxIqStream, unknown token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
         continue
@@ -158,6 +100,30 @@ public struct DaxIqStream: Identifiable {
       log("DaxIqStream \(id.hex): initialized channel = \(channel)", .debug, #function, #file, #line)
     }
   }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  /// Set a property
+  /// - Parameters:
+  ///   - radio:      the current radio
+  ///   - id:         a DaxIqStream Id
+  ///   - property:   a DaxIqStream Token
+  ///   - value:      the new value
+  public static func setProperty(radio: Radio, _ id: DaxIqStreamId, property: Property, value: Any) {
+    // FIXME: add commands
+  }
+  
+  // ----------------------------------------------------------------------------
+  // MARK: - Private Static methods
+  
   
   /// Send a command to Set a DaxIqStream property
   /// - Parameters:
@@ -165,7 +131,7 @@ public struct DaxIqStream: Identifiable {
   ///   - id:         the Id for the specified DaxIqStream
   ///   - token:      the parse token
   ///   - value:      the new value
-  private static func sendCommand(_ radio: Radio, _ id: DaxIqStreamId, _ token: DaxIqStreamToken, _ value: Any) {
+  private static func sendCommand(_ radio: Radio, _ id: DaxIqStreamId, _ token: Property, _ value: Any) {
     // FIXME: add commands
   }
 
@@ -175,7 +141,7 @@ public struct DaxIqStream: Identifiable {
   /// Process the IqStream Vita struct
   /// - Parameters:
   ///   - vita:       a Vita struct
-  public mutating func vitaProcessor(_ vita: Vita) {
+  public func vitaProcessor(_ vita: Vita) {
     if isStreaming == false {
       isStreaming = true
       // log the start of the stream
