@@ -11,17 +11,6 @@ extension Radio {
   // ----------------------------------------------------------------------------
   // MARK: - Parse tokens
 
-  enum ConnectionToken: String {
-      case clientId                 = "client_id"
-      case localPttEnabled          = "local_ptt"
-      case program
-      case station
-  }
-  enum DisconnectionToken: String {
-      case duplicateClientId        = "duplicate_client_id"
-      case forced
-      case wanValidationFailed      = "wan_validation_failed"
-  }
   enum DisplayToken: String {
       case panadapter               = "pan"
       case waterfall

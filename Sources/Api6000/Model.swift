@@ -32,6 +32,8 @@ public class Model: Equatable, ObservableObject {
   // MARK: - Public properties
   
   public var testerMode = false
+  public var packetPublisher = PassthroughSubject<PacketUpdate, Never>()
+  public var clientPublisher = PassthroughSubject<ClientUpdate, Never>()
   public var testPublisher = PassthroughSubject<SmartlinkTestResult, Never>()
   public var wanStatusPublisher = PassthroughSubject<WanStatus, Never>()
   
@@ -82,6 +84,7 @@ public class Model: Equatable, ObservableObject {
     case amplifier
     case atu
     case bandSetting
+    case client
     case cwx
     case daxIqStream
     case daxMicAudioStream
@@ -124,7 +127,7 @@ public class Model: Equatable, ObservableObject {
   public func removePackets(condition: (Packet) -> Bool) {
     for packet in packets where condition(packet) {
       let removedPacket = packets.remove(id: packet.id)
-      radio?.packetPublisher.send(PacketUpdate(.deleted, packet: removedPacket!))
+      packetPublisher.send(PacketUpdate(.deleted, packet: removedPacket!))
       log("Model: packet removed, interval = \(abs(removedPacket!.lastSeen.timeIntervalSince(Date())))", .debug, #function, #file, #line)
     }
   }
@@ -138,7 +141,7 @@ public class Model: Equatable, ObservableObject {
       if let object = waterfalls[id: vitaPacket.streamId]
       { object.vitaProcessor(vitaPacket, testerMode) }
 
-    case .amplifier, .atu, .bandSetting, .cwx, .display, .equalizer, .gps, .interlock, .memory, .profile, .tnf, .transmit, .usbCable, .wan, .waveform, .xvtr, .replyHandlers:
+    case .amplifier, .atu, .bandSetting, .cwx, .display, .equalizer, .gps, .interlock, .memory, .profile, .tnf, .transmit, .usbCable, .wan, .waveform, .xvtr, .replyHandlers, .client:
       break
     case .daxIqStream:
       break
@@ -167,6 +170,7 @@ public class Model: Equatable, ObservableObject {
     case .amplifier:            await processAmplifier(statusMessage.keyValuesArray(), !statusMessage.contains(Shared.kRemoved))
     case .atu:                  await processAtu(statusMessage.keyValuesArray())
     case .bandSetting:          await processBandSetting(statusMessage.keyValuesArray(), !statusMessage.contains(Shared.kRemoved))
+    case .client:               await processClient(statusMessage.keyValuesArray(), !statusMessage.contains(Shared.kDisconnected))
     case .cwx:                  await processCwx(statusMessage.keyValuesArray())
 //    case .daxIqStream:          await processDaxIqStream(statusMessage.keyValuesArray(), !statusMessage.contains(Shared.kNotInUse))
 //    case .daxMicAudioStream:    await processDaxMicAudioStream(statusMessage.keyValuesArray(), !statusMessage.contains(Shared.kNotInUse))
@@ -195,6 +199,116 @@ public class Model: Equatable, ObservableObject {
     }
   }
   
+  private func processClient(_ properties: KeyValuesArray, _ inUse: Bool = true) async {
+    // is there a valid handle"
+    if let handle = properties[0].key.handle {
+      switch properties[1].key {
+        
+      case Shared.kConnected:        parseConnection(properties: properties, handle: handle)
+      case Shared.kDisconnected:     parseDisconnection(properties: properties, handle: handle)
+      default:                    break
+      }
+    }
+  }
+
+  private func parseConnection(properties: KeyValuesArray, handle: Handle) {
+    var clientId = ""
+    var program = ""
+    var station = ""
+    var isLocalPtt = false
+
+    enum ConnectionToken: String {
+        case clientId                 = "client_id"
+        case localPttEnabled          = "local_ptt"
+        case program
+        case station
+    }
+
+    func guiClientWasEdited(_ handle: Handle, _ client: GuiClient) {
+      // log & notify if all essential properties are present
+      if client.handle != 0 && client.clientId != nil && client.program != "" && client.station != "" {
+        log("Radio: guiClient updated: \(client.handle.hex), \(client.station), \(client.program), \(client.clientId!)", .info, #function, #file, #line)
+        //              NC.post(.guiClientHasBeenUpdated, object: client as Any?)
+        clientPublisher.send(ClientUpdate(.updated, client: client, source: radio?.packet.source ?? .local))
+      }
+    }
+    // parse remaining properties
+    for property in properties.dropFirst(2) {
+      
+      // check for unknown Keys
+      guard let token = ConnectionToken(rawValue: property.key) else {
+        // log it and ignore this Key
+        log("Radio, unknown client token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
+        continue
+      }
+      // Known keys, in alphabetical order
+      switch token {
+        
+      case .clientId:         clientId = property.value
+      case .localPttEnabled:  isLocalPtt = property.value.bValue
+      case .program:          program = property.value.trimmingCharacters(in: .whitespaces)
+      case .station:          station = property.value.replacingOccurrences(of: "\u{007f}", with: "").trimmingCharacters(in: .whitespaces)
+      }
+    }
+    var handleWasFound = false
+    // find the guiClient with the specified handle
+    for (i, guiClient) in radio!.packet.guiClients.enumerated() where guiClient.handle == handle {
+      handleWasFound = true
+      
+      // update any fields that are present
+      if clientId != "" { radio!.packet.guiClients[id: handle]?.clientId = clientId }
+      if program  != "" { radio!.packet.guiClients[id: handle]?.program = program }
+      if station  != "" { radio!.packet.guiClients[id: handle]?.station = station }
+      radio!.packet.guiClients[id: handle]?.isLocalPtt = isLocalPtt
+      
+      guiClientWasEdited(handle, radio!.packet.guiClients[i])
+    }
+    
+    if handleWasFound == false {
+      // GuiClient with the specified handle was not found, add it
+      let client = GuiClient(handle: handle, station: station, program: program, clientId: clientId, isLocalPtt: isLocalPtt, isThisClient: handle == radio!.connectionHandle)
+      radio!.packet.guiClients.append(client)
+      
+      // log and notify of GuiClient update
+      log("Radio: guiClient added, \(handle.hex), \(station), \(program), \(clientId)", .info, #function, #file, #line)
+      //              NC.post(.guiClientHasBeenAdded, object: client as Any?)
+      
+      guiClientWasEdited(handle, client)
+    }
+  }
+  
+  func parseDisconnection(properties: KeyValuesArray, handle: Handle) {
+    var reason = ""
+    
+    enum DisconnectionToken: String {
+        case duplicateClientId        = "duplicate_client_id"
+        case forced
+        case wanValidationFailed      = "wan_validation_failed"
+    }
+
+    // is it me?
+    if handle == radio!.connectionHandle {
+      // parse remaining properties
+      for property in properties.dropFirst(2) {
+        // check for unknown Keys
+        guard let token = DisconnectionToken(rawValue: property.key) else {
+          // log it and ignore this Key
+          log("Radio, unknown client disconnection token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
+          continue
+        }
+        // Known keys, in alphabetical order
+        switch token {
+          
+        case .duplicateClientId:    if property.value.bValue { reason = "Duplicate ClientId" }
+        case .forced:               if property.value.bValue { reason = "Forced" }
+        case .wanValidationFailed:  if property.value.bValue { reason = "Wan validation failed" }
+        }
+        radio!.updateState(to: .clientDisconnected)
+        //              NC.post(.clientDidDisconnect, object: reason as Any?)
+      }
+    }
+  }
+
   private func processDisplay(_ statusMessage: String) async {
     let properties = statusMessage.keyValuesArray()
     switch properties[0].key {
@@ -314,7 +428,7 @@ public class Model: Equatable, ObservableObject {
     case .waterfall:              waterfalls.removeAll()
     case .xvtr:                   xvtrs.removeAll()
       
-    case .atu, .cwx, .gps, .interlock, .equalizer, .meter, .transmit, .wan, .waveform, .display, .stream:
+    case .atu, .cwx, .gps, .interlock, .equalizer, .meter, .transmit, .wan, .waveform, .display, .stream, .client:
       break
       
     case .replyHandlers:          replyHandlers.removeAll()
@@ -346,7 +460,7 @@ public class Model: Equatable, ObservableObject {
         packets[id: knownPacketId] = newPacket
         
         // publish and log the packet
-        radio?.packetPublisher.send(PacketUpdate(.updated, packet: newPacket))
+        packetPublisher.send(PacketUpdate(.updated, packet: newPacket))
         log("Model: \(newPacket.source.rawValue) packet updated, \(newPacket.nickname) \(newPacket.serial)", .debug, #function, #file, #line)
         
         // find, publish & log client additions / deletions
@@ -366,7 +480,7 @@ public class Model: Equatable, ObservableObject {
     packets.append(newPacket)
     
     // publish & log
-    radio?.packetPublisher.send(PacketUpdate(.added, packet: newPacket))
+    packetPublisher.send(PacketUpdate(.added, packet: newPacket))
     log("Model: \(newPacket.source.rawValue) packet added, \(newPacket.nickname) \(newPacket.serial)", .debug, #function, #file, #line)
     
     // find, publish & log client additions
@@ -428,7 +542,7 @@ public class Model: Equatable, ObservableObject {
       if oldPacket == nil || oldPacket?.guiClients[id: guiClient.id] == nil {
         
         // publish & log new guiClient
-        radio?.clientPublisher.send(ClientUpdate(.added, client: guiClient, source: receivedPacket.source))
+        clientPublisher.send(ClientUpdate(.added, client: guiClient, source: receivedPacket.source))
         log("Discovered: \(receivedPacket.source.rawValue) \(receivedPacket.nickname) guiClient added, \(guiClient.station)", .debug, #function, #file, #line)
         
         // FIXME: ?????
@@ -454,7 +568,7 @@ public class Model: Equatable, ObservableObject {
       if newPacket.guiClients[id: guiClient.id] == nil {
         
         // publish & log
-        radio?.clientPublisher.send(ClientUpdate(.deleted, client: guiClient, source: newPacket.source))
+        clientPublisher.send(ClientUpdate(.deleted, client: guiClient, source: newPacket.source))
         log("Discovered: \(newPacket.source.rawValue) \(newPacket.nickname) guiClient deleted, \(guiClient.station)", .debug, #function, #file, #line)
         
         for station in stations where station.guiClientStations == guiClient.station {

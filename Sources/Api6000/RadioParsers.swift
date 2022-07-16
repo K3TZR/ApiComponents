@@ -95,17 +95,17 @@ extension Radio {
   /// - Parameters:
   ///   - properties:      a KeyValuesArray
   ///   - inUse:          false = "to be deleted"
-  func parseClient(_ properties: KeyValuesArray, _ inUse: Bool = true) {
-    // is there a valid handle"
-    if let handle = properties[0].key.handle {
-      switch properties[1].key {
-        
-      case Shared.kConnected:        parseConnection(properties: properties, handle: handle)
-      case Shared.kDisconnected:     parseDisconnection(properties: properties, handle: handle)
-      default:                    break
-      }
-    }
-  }
+//  func parseClient(_ properties: KeyValuesArray, _ inUse: Bool = true) {
+//    // is there a valid handle"
+//    if let handle = properties[0].key.handle {
+//      switch properties[1].key {
+//
+//      case Shared.kConnected:        parseConnection(properties: properties, handle: handle)
+//      case Shared.kDisconnected:     parseDisconnection(properties: properties, handle: handle)
+//      default:                    break
+//      }
+//    }
+//  }
   
   /// Parse a Display status message
   /// - Parameters:
@@ -120,90 +120,90 @@ extension Radio {
 //    }
 //  }
   
-  func parseConnection(properties: KeyValuesArray, handle: Handle) {
-    var clientId = ""
-    var program = ""
-    var station = ""
-    var isLocalPtt = false
-    
-    func guiClientWasEdited(_ handle: Handle, _ client: GuiClient) {
-      // log & notify if all essential properties are present
-      if client.handle != 0 && client.clientId != nil && client.program != "" && client.station != "" {
-        log("Radio: guiClient updated: \(client.handle.hex), \(client.station), \(client.program), \(client.clientId!)", .info, #function, #file, #line)
-        //              NC.post(.guiClientHasBeenUpdated, object: client as Any?)
-        clientPublisher.send(ClientUpdate(.updated, client: client, source: packet.source))
-      }
-    }
-    // parse remaining properties
-    for property in properties.dropFirst(2) {
-      
-      // check for unknown Keys
-      guard let token = ConnectionToken(rawValue: property.key) else {
-        // log it and ignore this Key
-        log("Radio, unknown client token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
-        continue
-      }
-      // Known keys, in alphabetical order
-      switch token {
-        
-      case .clientId:         clientId = property.value
-      case .localPttEnabled:  isLocalPtt = property.value.bValue
-      case .program:          program = property.value.trimmingCharacters(in: .whitespaces)
-      case .station:          station = property.value.replacingOccurrences(of: "\u{007f}", with: "").trimmingCharacters(in: .whitespaces)
-      }
-    }
-    var handleWasFound = false
-    // find the guiClient with the specified handle
-    for (i, guiClient) in packet.guiClients.enumerated() where guiClient.handle == handle {
-      handleWasFound = true
-      
-      // update any fields that are present
-      if clientId != "" { packet.guiClients[id: handle]?.clientId = clientId }
-      if program  != "" { packet.guiClients[id: handle]?.program = program }
-      if station  != "" { packet.guiClients[id: handle]?.station = station }
-      packet.guiClients[id: handle]?.isLocalPtt = isLocalPtt
-      
-      guiClientWasEdited(handle, packet.guiClients[i])
-    }
-    
-    if handleWasFound == false {
-      // GuiClient with the specified handle was not found, add it
-      let client = GuiClient(handle: handle, station: station, program: program, clientId: clientId, isLocalPtt: isLocalPtt, isThisClient: handle == connectionHandle)
-      packet.guiClients.append(client)
-      
-      // log and notify of GuiClient update
-      log("Radio: guiClient added, \(handle.hex), \(station), \(program), \(clientId)", .info, #function, #file, #line)
-      //              NC.post(.guiClientHasBeenAdded, object: client as Any?)
-      
-      guiClientWasEdited(handle, client)
-    }
-  }
-  
-  func parseDisconnection(properties: KeyValuesArray, handle: Handle) {
-    var reason = ""
-    
-    // is it me?
-    if handle == connectionHandle {
-      // parse remaining properties
-      for property in properties.dropFirst(2) {
-        // check for unknown Keys
-        guard let token = DisconnectionToken(rawValue: property.key) else {
-          // log it and ignore this Key
-          log("Radio, unknown client disconnection token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
-          continue
-        }
-        // Known keys, in alphabetical order
-        switch token {
-          
-        case .duplicateClientId:    if property.value.bValue { reason = "Duplicate ClientId" }
-        case .forced:               if property.value.bValue { reason = "Forced" }
-        case .wanValidationFailed:  if property.value.bValue { reason = "Wan validation failed" }
-        }
-        updateState(to: .clientDisconnected)
-        //              NC.post(.clientDidDisconnect, object: reason as Any?)
-      }
-    }
-  }
+//  func parseConnection(properties: KeyValuesArray, handle: Handle) {
+//    var clientId = ""
+//    var program = ""
+//    var station = ""
+//    var isLocalPtt = false
+//    
+//    func guiClientWasEdited(_ handle: Handle, _ client: GuiClient) {
+//      // log & notify if all essential properties are present
+//      if client.handle != 0 && client.clientId != nil && client.program != "" && client.station != "" {
+//        log("Radio: guiClient updated: \(client.handle.hex), \(client.station), \(client.program), \(client.clientId!)", .info, #function, #file, #line)
+//        //              NC.post(.guiClientHasBeenUpdated, object: client as Any?)
+//        clientPublisher.send(ClientUpdate(.updated, client: client, source: packet.source))
+//      }
+//    }
+//    // parse remaining properties
+//    for property in properties.dropFirst(2) {
+//      
+//      // check for unknown Keys
+//      guard let token = ConnectionToken(rawValue: property.key) else {
+//        // log it and ignore this Key
+//        log("Radio, unknown client token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
+//        continue
+//      }
+//      // Known keys, in alphabetical order
+//      switch token {
+//        
+//      case .clientId:         clientId = property.value
+//      case .localPttEnabled:  isLocalPtt = property.value.bValue
+//      case .program:          program = property.value.trimmingCharacters(in: .whitespaces)
+//      case .station:          station = property.value.replacingOccurrences(of: "\u{007f}", with: "").trimmingCharacters(in: .whitespaces)
+//      }
+//    }
+//    var handleWasFound = false
+//    // find the guiClient with the specified handle
+//    for (i, guiClient) in packet.guiClients.enumerated() where guiClient.handle == handle {
+//      handleWasFound = true
+//      
+//      // update any fields that are present
+//      if clientId != "" { packet.guiClients[id: handle]?.clientId = clientId }
+//      if program  != "" { packet.guiClients[id: handle]?.program = program }
+//      if station  != "" { packet.guiClients[id: handle]?.station = station }
+//      packet.guiClients[id: handle]?.isLocalPtt = isLocalPtt
+//      
+//      guiClientWasEdited(handle, packet.guiClients[i])
+//    }
+//    
+//    if handleWasFound == false {
+//      // GuiClient with the specified handle was not found, add it
+//      let client = GuiClient(handle: handle, station: station, program: program, clientId: clientId, isLocalPtt: isLocalPtt, isThisClient: handle == connectionHandle)
+//      packet.guiClients.append(client)
+//      
+//      // log and notify of GuiClient update
+//      log("Radio: guiClient added, \(handle.hex), \(station), \(program), \(clientId)", .info, #function, #file, #line)
+//      //              NC.post(.guiClientHasBeenAdded, object: client as Any?)
+//      
+//      guiClientWasEdited(handle, client)
+//    }
+//  }
+//  
+//  func parseDisconnection(properties: KeyValuesArray, handle: Handle) {
+//    var reason = ""
+//    
+//    // is it me?
+//    if handle == connectionHandle {
+//      // parse remaining properties
+//      for property in properties.dropFirst(2) {
+//        // check for unknown Keys
+//        guard let token = DisconnectionToken(rawValue: property.key) else {
+//          // log it and ignore this Key
+//          log("Radio, unknown client disconnection token: \(property.key) = \(property.value)", .warning, #function, #file, #line)
+//          continue
+//        }
+//        // Known keys, in alphabetical order
+//        switch token {
+//          
+//        case .duplicateClientId:    if property.value.bValue { reason = "Duplicate ClientId" }
+//        case .forced:               if property.value.bValue { reason = "Forced" }
+//        case .wanValidationFailed:  if property.value.bValue { reason = "Wan validation failed" }
+//        }
+//        updateState(to: .clientDisconnected)
+//        //              NC.post(.clientDidDisconnect, object: reason as Any?)
+//      }
+//    }
+//  }
 
   /// Parse the Reply to a Client Gui command
   /// - Parameters:

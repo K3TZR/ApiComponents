@@ -41,9 +41,6 @@ public final class Radio: Equatable {
   // ----------------------------------------------------------------------------
   // MARK: - Public properties
 
-  public var packetPublisher = PassthroughSubject<PacketUpdate, Never>()
-  public var clientPublisher = PassthroughSubject<ClientUpdate, Never>()
-
   public static func == (lhs: Radio, rhs: Radio) -> Bool { lhs === rhs }
   public static let objectQ = DispatchQueue(label: "Radio.objectQ", attributes: [.concurrent])
   
@@ -304,25 +301,25 @@ public final class Radio: Equatable {
         self?.udpStatus(status)
       }
     
-    _cancellablePacketUpdate = packetPublisher
-      .sink { [weak self] update in
-        self?.packetUpdate(update)
-      }
+//    _cancellablePacketUpdate = Model.shared.packetPublisher
+//      .sink { [weak self] update in
+//        self?.packetUpdate(update)
+//      }
 
-    _cancellableClientUpdate = clientPublisher
-      .sink { [weak self] update in
-        self?.clientUpdate(update)
-      }
+//    _cancellableClientUpdate = Model.shared.clientPublisher
+//      .sink { [weak self] update in
+//        self?.clientUpdate(update)
+//      }
   }
   
   
-  func packetUpdate(_ update: PacketUpdate) {
-    log("Radio: \(update.packet.source.rawValue) packet \(update.packet.nickname) \(update.action.rawValue)", .info, #function, #file, #line)
-  }
+//  func packetUpdate(_ update: PacketUpdate) {
+//    log("Radio: \(update.packet.source.rawValue) packet \(update.packet.nickname) \(update.action.rawValue)", .info, #function, #file, #line)
+//  }
   
-  func clientUpdate(_ update: ClientUpdate) {
-    log("Radio: \(update.source.rawValue) client \(update.client.station) \(update.action.rawValue)", .info, #function, #file, #line)
-  }
+//  func clientUpdate(_ update: ClientUpdate) {
+//    log("Radio: \(update.source.rawValue) client \(update.client.station) \(update.action.rawValue)", .info, #function, #file, #line)
+//  }
 
   
   
